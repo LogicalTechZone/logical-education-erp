@@ -55,7 +55,7 @@ This matrix concerns inviting or assigning a target role. The actor must also ho
 | Actor \ Target | Owner | Organization Admin | Branch Manager | Staff | Read Only | Custom role |
 |---|---|---|---|---|---|---|
 | Owner | Allow, same tenant | Allow | Allow | Allow | Allow | Allow if same tenant and rank ≤100 |
-| Organization Admin | **Deny** | Allow invitation/assignment | Allow | Allow | Allow | Allow only same tenant and rank ≤80 |
+| Organization Admin | **Deny** | **Deny equal-rank delegation** | Allow | Allow | Allow | Allow only same tenant and rank <80 |
 | Branch Manager | **Deny** | **Deny** | **Deny equal-rank delegation** | Allow, assigned branches only | Allow, assigned branches only | Only branch scope, rank <50, permitted permission set and assigned branches |
 | Staff | Deny | Deny | Deny | Deny | Deny | Deny |
 | Read Only | Deny | Deny | Deny | Deny | Deny | Deny |

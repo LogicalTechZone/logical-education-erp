@@ -67,6 +67,7 @@ The definer owner is trusted to read through RLS for helper evaluation, preventi
 Document 2 is the authoritative operation-by-operation matrix. The overall model is:
 
 - authenticated users receive row-filtered read access only where needed;
+- tenants use a safe-column projection excluding `settings`, `created_by`, `creation_key` and `active_owner_count`; settings require a separate `settings.view` RPC/projection;
 - profiles additionally permit a narrow self-update of approved columns;
 - invitations retain P1's safe-column-only read grant, excluding `token_hash`;
 - no direct tenant, branch, role, membership, invitation, audit or platform-admin writes;
