@@ -3,8 +3,9 @@
 -- NOT APPLIED. Execute only via the Supabase migration tool after review approval.
 -- P1 creates schema, catalog seeds and structural integrity. P2 owns access
 -- policies, audit triggers, profile lifecycle and concurrency-safe Owner guards.
--- Until P2/P3: SELECT grants confer no rows (RLS denies all), no application
--- DML grants, no policies, no authenticated RPCs. Profile signup trigger deferred.
+-- Until P2/P3: authenticated SELECT grants confer no rows (RLS denies all).
+-- service_role reads ONLY explicitly granted projections, bypassing RLS.
+-- No application DML grants, policies or RPCs. Profile signup trigger deferred.
 -- Owner counter synchronization/minimum-one invariant NOT YET ENFORCED.
 -- No tenant provisioning or business writes before P2/P3 security gates.
 -- No tenant, branch, profile, membership, invitation or platform-admin seed rows.
