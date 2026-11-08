@@ -3,7 +3,10 @@
 -- NOT APPLIED. Execute only via the Supabase migration tool after review approval.
 -- P1 creates schema, catalog seeds and structural integrity. P2 owns access
 -- policies, audit triggers, profile lifecycle and concurrency-safe Owner guards.
--- Until P2/P3: no application DML grants, no policies, no authenticated RPCs.
+-- Until P2/P3: SELECT grants confer no rows (RLS denies all), no application
+-- DML grants, no policies, no authenticated RPCs. Profile signup trigger deferred.
+-- Owner counter synchronization/minimum-one invariant NOT YET ENFORCED.
+-- No tenant provisioning or business writes before P2/P3 security gates.
 -- No tenant, branch, profile, membership, invitation or platform-admin seed rows.
 -- Execute as one migration transaction; intentionally fail on existing objects.
 
@@ -32,6 +35,7 @@ CREATE TABLE public.tenants (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+REVOKE ALL ON public.tenants FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.tenants TO authenticated;
 GRANT ALL ON public.tenants TO service_role;
 ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
@@ -56,6 +60,7 @@ CREATE TABLE public.branches (
   UNIQUE (tenant_id, code),
   UNIQUE (tenant_id, id)
 );
+REVOKE ALL ON public.branches FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.branches TO authenticated;
 GRANT ALL ON public.branches TO service_role;
 ALTER TABLE public.branches ENABLE ROW LEVEL SECURITY;
@@ -70,6 +75,7 @@ CREATE TABLE public.profiles (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+REVOKE ALL ON public.profiles FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.profiles TO authenticated;
 GRANT ALL ON public.profiles TO service_role;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -88,6 +94,7 @@ CREATE TABLE public.roles (
   UNIQUE (tenant_id, key),
   UNIQUE (tenant_id, id)
 );
+REVOKE ALL ON public.roles FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.roles TO authenticated;
 GRANT ALL ON public.roles TO service_role;
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
@@ -99,6 +106,7 @@ CREATE TABLE public.permissions (
   action text NOT NULL,
   description text NOT NULL
 );
+REVOKE ALL ON public.permissions FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.permissions TO authenticated;
 GRANT ALL ON public.permissions TO service_role;
 ALTER TABLE public.permissions ENABLE ROW LEVEL SECURITY;
@@ -108,6 +116,7 @@ CREATE TABLE public.role_permissions (
   permission_key text NOT NULL REFERENCES public.permissions(key) ON DELETE RESTRICT,
   PRIMARY KEY (role_id, permission_key)
 );
+REVOKE ALL ON public.role_permissions FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.role_permissions TO authenticated;
 GRANT ALL ON public.role_permissions TO service_role;
 ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
@@ -125,6 +134,7 @@ CREATE TABLE public.memberships (
   UNIQUE (tenant_id, user_id),
   UNIQUE (tenant_id, id)
 );
+REVOKE ALL ON public.memberships FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.memberships TO authenticated;
 GRANT ALL ON public.memberships TO service_role;
 ALTER TABLE public.memberships ENABLE ROW LEVEL SECURITY;
@@ -139,6 +149,7 @@ CREATE TABLE public.membership_branches (
   FOREIGN KEY (tenant_id, branch_id)
     REFERENCES public.branches(tenant_id, id) ON DELETE RESTRICT
 );
+REVOKE ALL ON public.membership_branches FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.membership_branches TO authenticated;
 GRANT ALL ON public.membership_branches TO service_role;
 ALTER TABLE public.membership_branches ENABLE ROW LEVEL SECURITY;
@@ -161,6 +172,7 @@ CREATE TABLE public.invitations (
   FOREIGN KEY (tenant_id, inviter_membership_id)
     REFERENCES public.memberships(tenant_id, id) ON DELETE RESTRICT
 );
+REVOKE ALL ON public.invitations FROM PUBLIC, anon, authenticated;
 -- Deliberately no table-level authenticated SELECT: token_hash is never selectable.
 GRANT SELECT (id, tenant_id, email, role_id, status, invited_by,
   inviter_membership_id, expires_at, accepted_by, accepted_at, created_at, updated_at)
@@ -180,6 +192,7 @@ CREATE TABLE public.invitation_branches (
   FOREIGN KEY (tenant_id, branch_id)
     REFERENCES public.branches(tenant_id, id) ON DELETE RESTRICT
 );
+REVOKE ALL ON public.invitation_branches FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.invitation_branches TO authenticated;
 GRANT ALL ON public.invitation_branches TO service_role;
 ALTER TABLE public.invitation_branches ENABLE ROW LEVEL SECURITY;
@@ -195,10 +208,12 @@ CREATE TABLE public.audit_logs (
   ip inet,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+REVOKE ALL ON public.audit_logs FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.audit_logs TO authenticated;
 -- Least privilege: append/read only, including privileged application client.
 GRANT SELECT, INSERT ON public.audit_logs TO service_role;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON SEQUENCE public.audit_logs_id_seq FROM PUBLIC, anon, authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.audit_logs_id_seq TO service_role;
 
 CREATE TABLE public.platform_admins (
@@ -206,6 +221,7 @@ CREATE TABLE public.platform_admins (
   granted_by uuid,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+REVOKE ALL ON public.platform_admins FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.platform_admins TO authenticated;
 GRANT ALL ON public.platform_admins TO service_role;
 ALTER TABLE public.platform_admins ENABLE ROW LEVEL SECURITY;
@@ -358,7 +374,11 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Referenced role does not exist' USING ERRCODE = '23503';
   END IF;
-  IF NOT ((role_tenant IS NULL AND role_is_system) OR role_tenant = NEW.tenant_id) THEN
+  IF role_tenant IS NULL THEN
+    IF role_is_system IS DISTINCT FROM true THEN
+      RAISE EXCEPTION 'Invalid system role assignment' USING ERRCODE = '23514';
+    END IF;
+  ELSIF role_tenant IS DISTINCT FROM NEW.tenant_id THEN
     RAISE EXCEPTION 'Cross-tenant role assignment rejected' USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
