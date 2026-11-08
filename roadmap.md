@@ -9,5 +9,6 @@
 - [x] Re-share complete unchanged SQL (445 lines), schema/ERD review and draft checks for independent line-by-line review; user explicitly withheld execution approval.
 - [x] Revise P1 SQL privileges/actor identity, perform read-only citext preflight, document deletion lifecycle, and share exact changes plus updated static checks; v2 not executed.
 - [x] Prepare V3 removing both service_role SELECT grants; deliver complete SQL, updated schema, nonempty V1–V2/V2–V3/V1–V3 diffs, and static checks (120 statements; five regression tests passed) without database/Auth/application changes.
+- [x] Prepare the five requested P2 security blueprint documents against actual P1 V3 — planning and technical analysis only; no implementation, SQL execution, Auth or configuration changes.
 - [ ] Apply approved P1 migration to dedicated Dev project only, then provide schema, ERD, summary and executed test results — blocked on final migration review approval.
-- [ ] P2 and later phases — blocked pending separate P1 review and explicit approval to proceed.
+- [ ] P2 and later implementation phases — blocked pending P1 execution/review and separate explicit P2 approval.
