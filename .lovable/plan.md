@@ -1,75 +1,50 @@
-# Logical Education ERP — Revised M1 Architecture Review
+# Logical Education ERP — P1 Migration Review
 
-**Planning only.** This revision does not authorize migrations, database changes, access grants or application development. Explicit approval of M1 development is still required; reviewing/approving planning refinements alone does not start implementation.
+**M1 development is approved; P1 only. This SQL has NOT been applied.** Review the complete migration contents before authorizing execution. P2 remains blocked until P1 is completed, reviewed and explicitly approved.
 
-The complete revision is in Files as **Logical_Education_ERP_M1_Architecture_v2.md**, retaining the assessment, ERD, dictionary, permission matrix, navigation, design system and ten-phase sequence with security corrections.
+## Prerequisites
+- **GitHub synchronization:** user confirmed **Connected and active** in Project settings → Git. This is user-confirmed, not independently observable from chat; the project changes can use the existing sync. No claim that a particular commit has reached GitHub has been made.
+- **Dev only:** connected configuration matches dedicated Logical Education ERP Dev project `ojozmvvdpjmvsxmpgrul`. Read-only database preflight returned **zero public tables**.
+- No migrations, database mutations, Auth changes, platform grants or application implementation performed.
 
-## Confirmed requirements
-- Email verification is required before account access.
-- M1 invitations are secure copyable links; email delivery is deferred.
-- Initial Platform Admin email: **logicaltechzoneofficial@gmail.com**. This identifies the bootstrap account, not a frontend authorization rule.
-- Theme choices are **Light (default)** and **Dark** only.
-- TanStack server functions with PostgreSQL RPC are conditionally approved, subject to verified authorization and secret isolation.
-- No fake statistics, future modules, ownership-transfer UI, subscriptions or email provider in M1.
+## Complete review documents
+Files contains:
+- **Logical_Education_ERP_M1_P1_Migration_Review_v1.sql** — full proposed SQL, not an excerpt.
+- **Logical_Education_ERP_M1_P1_Schema_Review_v1.md** — table/constraint/index inventory, ERD, boundary notes and follow-up checks.
+- **Logical_Education_ERP_M1_P1_Draft_Checks_v1.txt** — static draft checks and explicitly unexecuted tests.
 
-## Updated schema decisions
-- Retain tenants, branches, profiles, memberships, roles, permissions, role_permissions, invitations and audit_logs; add membership_branches, invitation_branches and platform_admins.
-- Keep five immutable global system roles plus tenant-owned custom-role capability. Ordinary tenant role edits are deferred. Add a partial unique index on roles.key WHERE tenant_id IS NULL, in addition to tenant/key uniqueness.
-- Database validation on membership and invitation role assignment accepts only global system roles or matching-tenant custom roles; role tenancy/identity is immutable. Custom roles cannot represent Owner or platform authority.
-- Replace invitation branch UUID arrays with invitation_branches. Composite foreign keys link both invitation and branch within the same tenant. Invitations also reference the inviter's membership within that tenant.
-- membership_branches uses matching-tenant composite foreign keys for both parents.
-- tenants.active_owner_count is an internal transactional counter, not editable through user/API updates. Membership triggers atomically maintain it; an Owner-exit decrement succeeds only when the current count exceeds one. Multiple Owners are allowed; at least one survives.
-- Membership-to-profile deletion is restricted, preventing an Auth/profile cascade from silently deleting the last Owner. Profiles otherwise remain tied to auth.users with cascade lifecycle handling.
-- platform_admins stores the authenticated user's UUID, completely separate from tenant memberships and roles. No browser or tenant-role write path exists.
+The SQL draft is also saved in the project as a review document, outside the managed migration folder. After explicit review approval, the migration tool will apply the approved SQL and create the version-controlled migration file.
 
-## RLS and access plan
-- Every table has explicit grants in the same migration, followed by RLS and policies. No anonymous table access in M1.
-- Ordinary tenant operations use the authenticated user's JWT. Permission helpers derive identity from auth.uid(), require verified account and active membership/tenant, and never trust submitted roles or ownership.
-- System role and permission catalogs are readable to verified authenticated users. Custom roles and their role_permissions require membership of their owning tenant plus role.view. Foreign custom permission rows are hidden.
-- Branch-scoped callers can read/manage only permitted branches and permitted member/invitation projections. Scoped invitation visibility requires all offered branches to be within the caller's access.
-- Profile base access is self-only. A scoped directory returns only safe display fields, never unrelated profile/email/preferences payloads.
-- Direct membership/invitation/join-table mutations are denied. Narrow transactional RPCs independently authorize these operations; SECURITY DEFINER is not assumed to preserve RLS.
-- Audit records are database-controlled and append-only for ordinary users. Raw tokens and token hashes are excluded from audit metadata and user-facing invitation projections.
-- Helpers/RPCs use fixed empty search_path, qualified objects and restricted EXECUTE grants. No platform-admin exception is added to normal tenant RLS.
+## P1 objects
+- Add citext extension in extensions schema; retain existing pgcrypto.
+- **5 enums:** tenant_status, record_status, membership_status, invitation_status, role_scope.
+- **12 tables:** tenants, branches, profiles, roles, permissions, role_permissions, memberships, membership_branches, invitations, invitation_branches, audit_logs, platform_admins.
+- UUID primary keys except audit identity; timestamps/statuses; explicit NOT NULL, foreign keys and uniqueness.
+- Partial global-role key uniqueness when tenant_id IS NULL; pending invitation tenant/email uniqueness without time-dependent index predicates.
+- Composite tenant-parent foreign keys on membership/invitation branch links and inviter membership; ordinary role FK plus same-tenant/global-role validation trigger handles nullable system tenancy.
+- Immutable row/grant/tenant identity; role key/scope/rank/system semantics locked; structural field validations and updated_at maintenance. No authorization helpers or application RPCs.
+- Sixteen supporting indexes plus two partial unique indexes and constraint-backed indexes.
+- **Only real system catalog seeds:** five roles, fourteen permissions and thirty-seven mappings. No fake tenants, branches, people, invitations or statistics.
 
-## Security decisions
-### Invitation authority
-Creation and acceptance both validate tenant, role-grant authority, every branch and the inviter's current active permission. Branch-scoped invitations need a nonempty authorized subset; organization-scope roles require an organization-scope inviter. Revoked authority or disabled branches cause rejection. Acceptance requires the current verified invited email, locks the relevant records, and creates membership, branch assignments, accepted state and audit atomically. Existing memberships are not silently upgraded/reactivated.
+## Security boundary at P1
+Every public table has explicit grants followed by RLS enablement. Revoke default grants, then grant authenticated SELECT only; **zero policies means no rows are readable**. No client INSERT/UPDATE/DELETE/TRUNCATE. Invitation SELECT is safe-column-only, excluding token_hash. Audit privileges are read/append only for the privileged application role; users cannot write. No service credentials or frontend privileged operations are introduced.
 
-Generate 32 cryptographically secure random bytes and store only SHA-256 hash. Return the copyable link once; prefer a URL fragment to avoid HTTP token logging, clear it after reading and send via authenticated POST. Enforce seven-day expiry and single use; redact tokens from logs/telemetry. No email provider in M1.
+**P1 does not implement the complete security system.** Owner counter is storage-only; synchronization, minimum-one enforcement and concurrency guards belong to P2. Permission policies, custom-role visibility, branch/inviter authority, audit writers, profile signup handling and verified-account operations remain deferred. No tenant provisioning/business writes before P2/P3 security gates.
 
-### Last active Owner concurrency
-Lock tenant first, then targets in stable order. Revalidate actor/target after lock acquisition in a subsequent READ COMMITTED statement. Do not rely on a COUNT query with a stale statement snapshot. The atomic protected counter guards concurrent Owner exits even when prior reads were stale; rollbacks restore it. Higher-isolation conflicts require whole-transaction retries. Provisioning cannot commit without its initial Owner. Multi-tenant maintenance locks tenants in UUID order. Account-wide disablement is not an M1 feature; future/trusted operator workflows must preserve effective ownership before disabling accounts.
+**Platform Admin:** table remains empty. P9 securely resolves the verified authenticated account for **logicaltechzoneofficial@gmail.com** and assigns only its immutable UUID through controlled administration. No email-based frontend check, tenant promotion path or grant now.
 
-### Platform Admin bootstrap
-After explicit development approval, use a controlled migration or trusted server-side administrative process to resolve exactly one confirmed Auth account for **logicaltechzoneofficial@gmail.com**, verify its current authenticated identity and email ownership, then insert its immutable UUID into platform_admins idempotently with audit evidence. If absent/unverified, grant nothing until verified signup. No bootstrap is executed during planning, no frontend email authorization, no public privilege trigger, and no Owner/Admin promotion path. Later administration remains an operator-controlled process in M1.
+## Checks and limitations
+**Performed and passed:** PostgreSQL outer SQL grammar parsing (127 statements) and static checks for twelve tables/RLS enablements, grant ordering, no policies/client DML and catalog-only inserts.
 
-### Server execution and privileged operations
-The framework supports server-only handler execution and private environment secrets; published behavior is not yet verified. Keep privileged authorization routines in server-only modules and load the privileged client inside the handler only after user-scoped platform authorization. Never expose service-role keys in VITE variables, browser bundles, logs or returned data.
+**Not executed:** migration application; PL/pgSQL compilation/runtime; database FK/uniqueness tests; live JWT/RLS checks; Owner concurrency; invitation authority; platform authorization; Auth settings or deployed secret boundaries. No runtime/security test is represented as passed.
 
-Preserve anti-CSRF protection and register bearer attachment for authenticated server functions. Validate JWTs and verified identity; ordinary operations retain JWT/RLS access. Every service-role operation checks the initiating actor, action and target first, projects only needed fields and writes audit evidence. Do not expose generic privileged table/query/RPC proxies. Platform status changes serialize with tenant permission-sensitive mutations.
+Country/currency validation currently checks code formatting, not authoritative ISO catalog membership. Full lookup validation is an explicit follow-up before onboarding is enabled, not silently claimed complete.
 
-## Revised implementation sequence — only after development approval
-1. Tables, enums, explicit grants, partial indexes, composite foreign keys and immutable identity validation; seed system catalogs only.
-2. Helpers, RLS, scoped directory, audit and transactional Owner guards.
-3. Atomic onboarding, copyable invitation lifecycle, role/status and branch-assignment RPCs.
-4. Verified-email signup/login/logout/recovery and exactly-two-theme design tokens.
-5. Protected application shell, onboarding and organization switching.
-6. Branch create/view/edit/activate/deactivate.
-7. Users/invitations and role/permission read views.
-8. Organization settings and real-data dashboard.
-9. Separate Platform Admin area and controlled verified-account bootstrap.
-10. Acceptance tests and evidence report; deploy-only checks after deployment is authorized.
+## Next steps after approval of exact SQL contents
+1. Apply only this reviewed migration through the migration tool to Dev, in one transaction.
+2. Verify live schema, constraints/indexes, grants, RLS/no-policy state, trigger/function security and exact catalog counts.
+3. Execute P1 structural positive/negative tests with rollback-only fixtures; report actual pass/fail and incomplete checks.
+4. Provide migration summary, database schema, ERD and test evidence.
+5. Stop; request P1 review and wait for explicit permission before P2.
 
-## Explicit test gates
-Retain all fourteen original acceptance tests and add:
-- **Cross-tenant role assignment:** membership AND invitation paths reject foreign roles at database level; system duplicates rejected despite NULL tenant.
-- **Invitation branch restrictions:** foreign/unassigned/disabled branches, empty scoped grants, scope escalation, lost inviter authority, wrong/unverified email and token replay denied; authorized exact subset succeeds atomically.
-- **Concurrent last-Owner protection:** independent database sessions with barriers race demotion, status and deletion/maintenance paths; one survivor remains and counter matches actual rows. Ordinary equal-rank/self edits are separately denied. Include rollback and stale-isolation cases.
-- **Unauthorized service-role operations:** anonymous/forged/expired JWTs and tenant Owners/Admins denied before privileged-client creation/use; instrument zero privileged calls. Authorized platform UUID succeeds and produces audit evidence.
-- **Custom-role permission isolation:** direct API and RPC joins return no unrelated tenant roles/permissions; authorized same-tenant catalog access succeeds.
-
-Also verify real signup confirmation/recovery, direct API grants, scoped profiles, token expiry/acceptance races, per-user theme persistence and deployed secret boundaries. Tests are planned, not executed; no security or readiness claim until evidence exists.
-
-## Approval and configuration gates
-The initial Platform Admin email is now confirmed. **M1 development remains blocked solely on explicit development approval.** External Supabase Auth settings/redirects still need hosted verification before auth testing; the account must exist and be verified before its platform grant. GitHub sync and Production environment remain unverified/deferred. No application or database changes have been made in this revision.
+**Please review the full SQL before approving execution.** Approval here applies to this P1 migration, not P2 or the remaining phases.
