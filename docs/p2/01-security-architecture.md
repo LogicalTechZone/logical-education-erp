@@ -87,7 +87,7 @@ Document 3 preserves P1's five roles, fourteen permissions and thirty-seven mapp
 - Organization Admin may grant Organization Admin or lower, never Owner.
 - Branch Manager may grant only lower-ranked branch roles (`staff` and `read_only`) within every branch assigned to the invitation/membership.
 - Staff and Read Only have no invitation or membership-management capability.
-- Custom roles follow their scope, rank and actual mappings. Organization Admin cannot delegate a custom role ranked above 80; only Owner can delegate ranks above 80.
+- Custom roles follow their scope, rank and actual mappings. Organization Admin can delegate only a custom role ranked strictly below 80; only Owner can delegate ranks of 80 or higher.
 - Every non-Owner may delegate only a strictly lower rank. Thus an Organization Admin cannot invite or assign another Organization Admin. Managing an existing equal non-Owner peer is also denied. A distinct active Owner may manage another Owner subject to the last-Owner invariant. Self role/status changes use dedicated guarded workflows and cannot bypass those rules.
 
 ### Branch rules
