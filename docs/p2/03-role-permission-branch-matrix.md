@@ -97,7 +97,7 @@ Branch Manager's `organization.view`, `settings.view` and `role.view` do not wid
 5. Branch-role invitation: branch list must be nonempty, distinct, active and same-tenant.
 6. Organization actor: any tenant branch within rank/permission rules.
 7. Branch actor: every invited branch must be in the actor's own active `membership_branches` set.
-8. A Branch Manager can offer only roles strictly below rank 50. Organization Admin can offer at most rank 80. Only Owner can offer Owner.
+8. Every non-Owner can offer only a strictly lower rank: Branch Manager below 50 and Organization Admin below 80. Only Owner can offer Owner, and Owner-to-Owner delegation is the explicit equal-rank exception.
 9. Store only the token hash and derive expiry/inviter/timestamps server-side.
 
 ### Acceptance

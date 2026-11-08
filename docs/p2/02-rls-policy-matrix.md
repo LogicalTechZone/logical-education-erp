@@ -39,6 +39,7 @@ The following is semantic logic, not executable migration SQL. Helper names are 
 ### tenants
 
 - Policy `tenants_select_member`: `p2_has_org_or_branch_permission(tenant_id, 'organization.view')` with tenant active. Every P1 system role has this permission; custom roles need the explicit mapping.
+- Revoke P1's table-level authenticated SELECT and replace it with the eleven safe columns listed in the matrix. RLS filters rows, not columns. `settings.view` returns an allowlisted settings projection through a separate RPC; `created_by`, `creation_key` and `active_owner_count` have no ordinary client read.
 - No tenant write policies. The future provisioning RPC derives `created_by = auth.uid()` and controls `creation_key`; organization update uses a fixed allowlist.
 
 ### branches
