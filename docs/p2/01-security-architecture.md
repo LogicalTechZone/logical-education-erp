@@ -170,7 +170,9 @@ These are explicitly identified, not silently patched:
 | Owner counter and minimum-one invariant are unenforced | Add coordinated tenant-locking, counter and deferred validation triggers | P2, separately approved migration |
 | Branch-role non-empty and organization-role empty branch sets are not structural | Add deferred validation triggers plus RPC checks | P2 |
 | Audit rows lack immutability and controlled writers | Add private audit triggers/writers and update/delete guard | P2 |
+| Tenant table SELECT would expose the full settings JSON and internal fields to every member | Replace it with safe-column SELECT; settings require `settings.view` and a safe RPC projection | P2 privilege design |
 | Profile rows contain phone and last-tenant hint; broad co-member SELECT would expose them | Keep direct profile SELECT self-only; use a safe directory RPC/projection | P2 policy; P3 directory |
+| System-role display fields and global mappings are protected by ACLs but not complete privileged-writer immutability guards | Add P2 catalog guards for application/definer paths; future reviewed migrations may deliberately change the catalog | P2 |
 | Audit rows have no branch ID | Restrict audit reads to organization scope; do not pretend branch filtering is possible | P2; schema change only if future branch audit is requested |
 | Time-expired invitations remain `pending` until transitioned | Lazily expire inside create/accept workflows under row locks | P3; no schema change |
 | Existing membership conflicts with invitation acceptance | Reject safely; no automatic reactivation | P3 |

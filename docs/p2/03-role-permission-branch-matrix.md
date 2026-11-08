@@ -149,7 +149,7 @@ Even while management is disabled, P2 read policies must support the existing sc
 - a custom role's name or rank never grants Owner or Platform Admin status;
 - branch-scoped custom roles require explicit branch assignments;
 - organization-scoped custom roles receive no branch rows and only their explicitly mapped permissions;
-- delegation must consider target rank and branch scope, not only whether the actor possesses every target permission. Before custom-role management is enabled, an additional rule must prevent delegating permissions the actor does not possess or define Owner as the explicit exception.
+- delegation requires strictly lower rank for every non-Owner, compatible/narrower scope, and a target permission subset no greater than the actor's delegable authority. Owner is the only equal-rank exception and may delegate Owner only to another user inside the same tenant. Custom-role management remains disabled until these rules are implemented and tested.
 
 ## 9. Platform authority matrix
 

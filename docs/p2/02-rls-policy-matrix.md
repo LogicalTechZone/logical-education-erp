@@ -107,7 +107,7 @@ The following is semantic logic, not executable migration SQL. Helper names are 
 
 These are design requirements, not executed grants:
 
-1. Preserve all P1 SELECT grants and safe invitation column projection.
+1. Preserve the safe invitation column projection and other required read grants, except replace the tenants table-level SELECT with its explicit safe-column projection. Never replace invitation column grants with table-level SELECT.
 2. Add only column-level authenticated UPDATE for the five approved profile fields if self-update is included in P2; otherwise defer both grant and policy to P4.
 3. Grant authenticated `EXECUTE` only on explicitly public boolean policy helpers and approved user-JWT RPCs.
 4. Do not grant authenticated or service_role table INSERT/DELETE/TRUNCATE, general table UPDATE, audit sequence usage, or direct token-hash SELECT.
