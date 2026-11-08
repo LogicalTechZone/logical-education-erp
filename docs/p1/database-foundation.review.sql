@@ -1,4 +1,4 @@
--- Logical Education ERP / M1 P1 / FINAL REVIEW DRAFT v1
+-- Logical Education ERP / M1 P1 / FINAL REVIEW DRAFT v2
 -- Target: dedicated Dev Supabase project ojozmvvdpjmvsxmpgrul ONLY.
 -- NOT APPLIED. Execute only via the Supabase migration tool after review approval.
 -- P1 creates schema, catalog seeds and structural integrity. P2 owns access
@@ -9,8 +9,40 @@
 -- No tenant provisioning or business writes before P2/P3 security gates.
 -- No tenant, branch, profile, membership, invitation or platform-admin seed rows.
 -- Execute as one migration transaction; intentionally fail on existing objects.
+-- Revoke inherited DEFAULT direct grants including service_role on each new
+-- object. service_role BYPASSRLS does NOT bypass object privilege checks when
+-- it is neither owner nor inheriting an owner/privileged role; live ACL/role
+-- inheritance checks remain mandatory after approval. No service direct DML.
+-- Future privileged writes use separately reviewed narrow RPCs, not GRANT ALL.
+-- Account lifecycle: Auth deletion cascades into profiles, but ANY retained
+-- membership (including removed) blocks profile deletion via RESTRICT; entire
+-- Auth delete rolls back. M1 offboarding retains account/history and removes
+-- membership access via future checked status RPC. Hard deletion is deferred.
+-- Historical created_by/actor UUIDs are provenance, NOT authorization grants.
 
+-- Read-only Dev preflight: citext absent; extensions schema exists;
+-- citext 1.6 available. Recheck on execution and fail if installation drifted.
+-- Never silently relocate an existing extension or modify managed Auth objects.
+DO $preflight$
+DECLARE installed_schema text;
+BEGIN
+  IF pg_catalog.to_regnamespace('extensions') IS NULL THEN
+    RAISE EXCEPTION 'Expected extensions schema is missing';
+  END IF;
+  SELECT n.nspname INTO installed_schema
+    FROM pg_catalog.pg_extension e
+    JOIN pg_catalog.pg_namespace n ON n.oid = e.extnamespace
+    WHERE e.extname = 'citext';
+  IF installed_schema IS NOT NULL AND installed_schema <> 'extensions' THEN
+    RAISE EXCEPTION 'citext installed in %, expected extensions; re-review SQL', installed_schema;
+  END IF;
+END;
+$preflight$;
 CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA extensions;
+-- Type and operator resolution are explicit for this migration. This also
+-- covers citext equality during seed/structural checks without relying on
+-- a session's implicit search_path. Definer trigger paths remain empty.
+SET LOCAL search_path = pg_catalog, public, extensions;
 
 CREATE TYPE public.tenant_status AS ENUM ('active', 'suspended', 'archived');
 CREATE TYPE public.record_status AS ENUM ('active', 'inactive');
@@ -29,15 +61,20 @@ CREATE TABLE public.tenants (
   contact_phone text,
   status public.tenant_status NOT NULL DEFAULT 'active',
   settings jsonb NOT NULL DEFAULT '{}'::jsonb,
+  -- Historical actor UUID, not an Auth FK. Future create_organization must
+  -- derive this from verified auth.uid(); P1 installs no provisioning path.
   created_by uuid NOT NULL,
   creation_key uuid NOT NULL UNIQUE,
   active_owner_count integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-REVOKE ALL ON public.tenants FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.tenants FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.tenants TO authenticated;
-GRANT ALL ON public.tenants TO service_role;
+-- Future platform listing/detail only; no settings, counter or direct writes.
+GRANT SELECT (id, name, slug, country, timezone, default_currency,
+  contact_email, contact_phone, status, created_at, updated_at)
+  ON public.tenants TO service_role;
 ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE public.branches (
@@ -60,9 +97,8 @@ CREATE TABLE public.branches (
   UNIQUE (tenant_id, code),
   UNIQUE (tenant_id, id)
 );
-REVOKE ALL ON public.branches FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.branches FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.branches TO authenticated;
-GRANT ALL ON public.branches TO service_role;
 ALTER TABLE public.branches ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE public.profiles (
@@ -75,9 +111,8 @@ CREATE TABLE public.profiles (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-REVOKE ALL ON public.profiles FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.profiles FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.profiles TO authenticated;
-GRANT ALL ON public.profiles TO service_role;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE public.roles (
@@ -94,9 +129,8 @@ CREATE TABLE public.roles (
   UNIQUE (tenant_id, key),
   UNIQUE (tenant_id, id)
 );
-REVOKE ALL ON public.roles FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.roles FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.roles TO authenticated;
-GRANT ALL ON public.roles TO service_role;
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
 CREATE UNIQUE INDEX roles_system_key_unique ON public.roles(key) WHERE tenant_id IS NULL;
 
@@ -106,9 +140,8 @@ CREATE TABLE public.permissions (
   action text NOT NULL,
   description text NOT NULL
 );
-REVOKE ALL ON public.permissions FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.permissions FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.permissions TO authenticated;
-GRANT ALL ON public.permissions TO service_role;
 ALTER TABLE public.permissions ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE public.role_permissions (
@@ -116,9 +149,8 @@ CREATE TABLE public.role_permissions (
   permission_key text NOT NULL REFERENCES public.permissions(key) ON DELETE RESTRICT,
   PRIMARY KEY (role_id, permission_key)
 );
-REVOKE ALL ON public.role_permissions FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.role_permissions FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.role_permissions TO authenticated;
-GRANT ALL ON public.role_permissions TO service_role;
 ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE public.memberships (
@@ -134,9 +166,8 @@ CREATE TABLE public.memberships (
   UNIQUE (tenant_id, user_id),
   UNIQUE (tenant_id, id)
 );
-REVOKE ALL ON public.memberships FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.memberships FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.memberships TO authenticated;
-GRANT ALL ON public.memberships TO service_role;
 ALTER TABLE public.memberships ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE public.membership_branches (
@@ -149,9 +180,8 @@ CREATE TABLE public.membership_branches (
   FOREIGN KEY (tenant_id, branch_id)
     REFERENCES public.branches(tenant_id, id) ON DELETE RESTRICT
 );
-REVOKE ALL ON public.membership_branches FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.membership_branches FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.membership_branches TO authenticated;
-GRANT ALL ON public.membership_branches TO service_role;
 ALTER TABLE public.membership_branches ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE public.invitations (
@@ -161,7 +191,8 @@ CREATE TABLE public.invitations (
   role_id uuid NOT NULL REFERENCES public.roles(id) ON DELETE RESTRICT,
   token_hash text NOT NULL UNIQUE,
   status public.invitation_status NOT NULL DEFAULT 'pending',
-  invited_by uuid NOT NULL,
+  -- Canonical inviter identity; user UUID derives from memberships.user_id.
+  -- Redundant invitation invited_by column intentionally removed.
   inviter_membership_id uuid NOT NULL,
   expires_at timestamptz NOT NULL DEFAULT (now() + interval '7 days'),
   accepted_by uuid,
@@ -172,12 +203,11 @@ CREATE TABLE public.invitations (
   FOREIGN KEY (tenant_id, inviter_membership_id)
     REFERENCES public.memberships(tenant_id, id) ON DELETE RESTRICT
 );
-REVOKE ALL ON public.invitations FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.invitations FROM PUBLIC, anon, authenticated, service_role;
 -- Deliberately no table-level authenticated SELECT: token_hash is never selectable.
-GRANT SELECT (id, tenant_id, email, role_id, status, invited_by,
+GRANT SELECT (id, tenant_id, email, role_id, status,
   inviter_membership_id, expires_at, accepted_by, accepted_at, created_at, updated_at)
   ON public.invitations TO authenticated;
-GRANT ALL ON public.invitations TO service_role;
 ALTER TABLE public.invitations ENABLE ROW LEVEL SECURITY;
 CREATE UNIQUE INDEX invitations_pending_email_unique
   ON public.invitations(tenant_id, email) WHERE status = 'pending';
@@ -192,9 +222,8 @@ CREATE TABLE public.invitation_branches (
   FOREIGN KEY (tenant_id, branch_id)
     REFERENCES public.branches(tenant_id, id) ON DELETE RESTRICT
 );
-REVOKE ALL ON public.invitation_branches FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.invitation_branches FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.invitation_branches TO authenticated;
-GRANT ALL ON public.invitation_branches TO service_role;
 ALTER TABLE public.invitation_branches ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE public.audit_logs (
@@ -208,22 +237,20 @@ CREATE TABLE public.audit_logs (
   ip inet,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-REVOKE ALL ON public.audit_logs FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.audit_logs FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.audit_logs TO authenticated;
--- Least privilege: append/read only, including privileged application client.
-GRANT SELECT, INSERT ON public.audit_logs TO service_role;
+-- Future authorized platform audit read only; database writers belong to P2.
+GRANT SELECT ON public.audit_logs TO service_role;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON SEQUENCE public.audit_logs_id_seq FROM PUBLIC, anon, authenticated;
-GRANT USAGE, SELECT ON SEQUENCE public.audit_logs_id_seq TO service_role;
+REVOKE ALL ON SEQUENCE public.audit_logs_id_seq FROM PUBLIC, anon, authenticated, service_role;
 
 CREATE TABLE public.platform_admins (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   granted_by uuid,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-REVOKE ALL ON public.platform_admins FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.platform_admins FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.platform_admins TO authenticated;
-GRANT ALL ON public.platform_admins TO service_role;
 ALTER TABLE public.platform_admins ENABLE ROW LEVEL SECURITY;
 -- No seed here. P9 controlled bootstrap resolves the verified account for
 -- logicaltechzoneofficial@gmail.com to its authenticated immutable user UUID.
@@ -261,7 +288,7 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.p1_guard_identity() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.p1_guard_identity() FROM PUBLIC, anon, authenticated, service_role;
 
 CREATE TRIGGER tenants_identity_guard BEFORE UPDATE ON public.tenants
   FOR EACH ROW EXECUTE FUNCTION public.p1_guard_identity('id','slug','created_by','creation_key','created_at');
@@ -276,7 +303,7 @@ CREATE TRIGGER memberships_identity_guard BEFORE UPDATE ON public.memberships
 CREATE TRIGGER membership_branches_identity_guard BEFORE UPDATE ON public.membership_branches
   FOR EACH ROW EXECUTE FUNCTION public.p1_guard_identity('tenant_id','membership_id','branch_id');
 CREATE TRIGGER invitations_identity_guard BEFORE UPDATE ON public.invitations
-  FOR EACH ROW EXECUTE FUNCTION public.p1_guard_identity('id','tenant_id','email','role_id','token_hash','invited_by','inviter_membership_id','expires_at','created_at');
+  FOR EACH ROW EXECUTE FUNCTION public.p1_guard_identity('id','tenant_id','email','role_id','token_hash','inviter_membership_id','expires_at','created_at');
 CREATE TRIGGER invitation_branches_identity_guard BEFORE UPDATE ON public.invitation_branches
   FOR EACH ROW EXECUTE FUNCTION public.p1_guard_identity('tenant_id','invitation_id','branch_id');
 CREATE TRIGGER platform_admins_identity_guard BEFORE UPDATE ON public.platform_admins
@@ -354,7 +381,7 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.p1_validate_fields() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.p1_validate_fields() FROM PUBLIC, anon, authenticated, service_role;
 CREATE TRIGGER tenants_field_validation BEFORE INSERT OR UPDATE ON public.tenants FOR EACH ROW EXECUTE FUNCTION public.p1_validate_fields();
 CREATE TRIGGER branches_field_validation BEFORE INSERT OR UPDATE ON public.branches FOR EACH ROW EXECUTE FUNCTION public.p1_validate_fields();
 CREATE TRIGGER profiles_field_validation BEFORE INSERT OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.p1_validate_fields();
@@ -384,7 +411,7 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.p1_validate_role_assignment() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.p1_validate_role_assignment() FROM PUBLIC, anon, authenticated, service_role;
 CREATE TRIGGER memberships_role_integrity BEFORE INSERT OR UPDATE OF role_id, tenant_id ON public.memberships
   FOR EACH ROW EXECUTE FUNCTION public.p1_validate_role_assignment();
 CREATE TRIGGER invitations_role_integrity BEFORE INSERT OR UPDATE OF role_id, tenant_id ON public.invitations
@@ -397,7 +424,7 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.p1_touch_updated_at() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.p1_touch_updated_at() FROM PUBLIC, anon, authenticated, service_role;
 CREATE TRIGGER tenants_touch BEFORE UPDATE ON public.tenants FOR EACH ROW EXECUTE FUNCTION public.p1_touch_updated_at();
 CREATE TRIGGER branches_touch BEFORE UPDATE ON public.branches FOR EACH ROW EXECUTE FUNCTION public.p1_touch_updated_at();
 CREATE TRIGGER profiles_touch BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.p1_touch_updated_at();
@@ -442,4 +469,9 @@ COMMENT ON TABLE public.platform_admins IS 'Separate platform authority; control
 COMMENT ON COLUMN public.tenants.active_owner_count IS 'Reserved internal counter; P2 atomic Owner invariant guards not installed in P1. No business provisioning permitted yet.';
 COMMENT ON TABLE public.invitations IS 'Copyable token link; branch scopes in invitation_branches. Authorization, expiry-at-use and acceptance RPCs deferred to P3.';
 COMMENT ON TABLE public.role_permissions IS 'Custom role isolation policies deferred to P2. P1 RLS denies all authenticated reads.';
-COMMENT ON TABLE public.audit_logs IS 'Append-only application grants. Database audit writers and immutable audit guard deferred to P2.';
+COMMENT ON TABLE public.audit_logs IS 'Read-only client grants including service_role. Database audit writers and immutable audit guard deferred to P2.';
+
+COMMENT ON COLUMN public.tenants.created_by IS 'Historical verified actor UUID assigned by future provisioning RPC; no client input trusted. P1 cannot establish authenticated provenance.';
+COMMENT ON COLUMN public.invitations.inviter_membership_id IS 'Canonical immutable inviter; same-tenant composite FK. Derive inviter user from referenced membership, not redundant storage.';
+COMMENT ON COLUMN public.memberships.invited_by IS 'Historical provenance only; no authority. Future invitation acceptance derives from canonical inviter membership.';
+COMMENT ON TABLE public.profiles IS 'Auth deletion cascades to profile but is blocked by any retained membership FK RESTRICT. M1 offboarding preserves identity/history; hard account deletion deferred.';
