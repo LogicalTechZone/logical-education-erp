@@ -2,7 +2,7 @@
 
 **Planning only.** This revision does not authorize migrations, database changes, access grants or application development. Explicit approval of M1 development is still required; reviewing/approving planning refinements alone does not start implementation.
 
-The complete versioned technical document is available in Files as **Logical_Education_ERP_M1_Architecture_v2.md**, retaining the original assessment, ERD, dictionary, permission matrix, navigation, design system and ten-phase sequence while correcting the affected security sections.
+The complete revision is in Files as **Logical_Education_ERP_M1_Architecture_v2.md**, retaining the assessment, ERD, dictionary, permission matrix, navigation, design system and ten-phase sequence with security corrections.
 
 ## Confirmed requirements
 - Email verification is required before account access.
@@ -10,7 +10,7 @@ The complete versioned technical document is available in Files as **Logical_Edu
 - Initial Platform Admin email: **logicaltechzoneofficial@gmail.com**. This identifies the bootstrap account, not a frontend authorization rule.
 - Theme choices are **Light (default)** and **Dark** only.
 - TanStack server functions with PostgreSQL RPC are conditionally approved, subject to verified authorization and secret isolation.
-- No fake dashboard statistics, future ERP modules, ownership-transfer UI, subscription integration or email provider in M1.
+- No fake statistics, future modules, ownership-transfer UI, subscriptions or email provider in M1.
 
 ## Updated schema decisions
 - Retain tenants, branches, profiles, memberships, roles, permissions, role_permissions, invitations and audit_logs; add membership_branches, invitation_branches and platform_admins.
