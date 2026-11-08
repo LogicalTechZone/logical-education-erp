@@ -94,7 +94,7 @@ The following is semantic logic, not executable migration SQL. Helper names are 
 
 ### audit_logs
 
-- Policy `audit_logs_select_organization`: active same-tenant organization-scope role with `audit.view`.
+- Policy `audit_logs_select_organization`: `tenant_id IS NOT NULL` plus active same-tenant organization-scope role with `audit.view`. Tenant users receive no platform/global rows whose tenant is null.
 - No application insert policy despite auditing requirements; only private writers append.
 - No update/delete policies and a database guard blocks privileged accidental mutations. The identity sequence remains ungranted to every application role.
 

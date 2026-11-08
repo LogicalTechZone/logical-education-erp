@@ -180,6 +180,7 @@ These are explicitly identified, not silently patched:
 | Tenant/Owner bootstrap cannot pass an immediate zero-Owner rule | Use deferred invariant validation and one atomic provisioning transaction | P2 trigger design; P3 provisioning |
 | Country/currency checks are format-only | Authoritative catalog validation remains an onboarding prerequisite | Before P3 onboarding |
 | Generic request idempotency is not schema-backed | Only organization creation has `creation_key`; other retries are state-checked, not claimed exactly-once | Later review if required |
+| No durable invitation rate-limit, delivery/outbox or general workflow-idempotency storage exists | Server wrappers must not claim durable abuse controls from in-memory state; approve storage or an external control before exposed P3 endpoints rely on it | P3 prerequisite/decision |
 | Platform operations are unspecified and unauthorized | No bootstrap or cross-tenant platform RPC | P9 |
 
 No new table or column is required for the core P2 design. Any later decision to add one requires a new reviewed migration; this blueprint does not create it.
