@@ -1,10 +1,10 @@
--- Logical Education ERP / M1 P1 / FINAL REVIEW DRAFT v2
+-- Logical Education ERP / M1 P1 / FINAL REVIEW DRAFT v3
 -- Target: dedicated Dev Supabase project ojozmvvdpjmvsxmpgrul ONLY.
 -- NOT APPLIED. Execute only via the Supabase migration tool after review approval.
 -- P1 creates schema, catalog seeds and structural integrity. P2 owns access
 -- policies, audit triggers, profile lifecycle and concurrency-safe Owner guards.
 -- Until P2/P3: authenticated SELECT grants confer no rows (RLS denies all).
--- service_role reads ONLY explicitly granted projections, bypassing RLS.
+-- service_role has NO direct P1 table or sequence privileges, including SELECT.
 -- No application DML grants, policies or RPCs. Profile signup trigger deferred.
 -- Owner counter synchronization/minimum-one invariant NOT YET ENFORCED.
 -- No tenant provisioning or business writes before P2/P3 security gates.
@@ -13,7 +13,8 @@
 -- Revoke inherited DEFAULT direct grants including service_role on each new
 -- object. service_role BYPASSRLS does NOT bypass object privilege checks when
 -- it is neither owner nor inheriting an owner/privileged role; live ACL/role
--- inheritance checks remain mandatory after approval. No service direct DML.
+-- inheritance checks remain mandatory after approval. No service direct reads/writes.
+-- Any future Platform Admin access requires separately reviewed P9 authorization.
 -- Future privileged writes use separately reviewed narrow RPCs, not GRANT ALL.
 -- Account lifecycle: Auth deletion cascades into profiles, but ANY retained
 -- membership (including removed) blocks profile deletion via RESTRICT; entire
@@ -72,10 +73,6 @@ CREATE TABLE public.tenants (
 );
 REVOKE ALL ON public.tenants FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.tenants TO authenticated;
--- Future platform listing/detail only; no settings, counter or direct writes.
-GRANT SELECT (id, name, slug, country, timezone, default_currency,
-  contact_email, contact_phone, status, created_at, updated_at)
-  ON public.tenants TO service_role;
 ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE public.branches (
@@ -240,8 +237,6 @@ CREATE TABLE public.audit_logs (
 );
 REVOKE ALL ON public.audit_logs FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.audit_logs TO authenticated;
--- Future authorized platform audit read only; database writers belong to P2.
-GRANT SELECT ON public.audit_logs TO service_role;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON SEQUENCE public.audit_logs_id_seq FROM PUBLIC, anon, authenticated, service_role;
 
@@ -470,7 +465,7 @@ COMMENT ON TABLE public.platform_admins IS 'Separate platform authority; control
 COMMENT ON COLUMN public.tenants.active_owner_count IS 'Reserved internal counter; P2 atomic Owner invariant guards not installed in P1. No business provisioning permitted yet.';
 COMMENT ON TABLE public.invitations IS 'Copyable token link; branch scopes in invitation_branches. Authorization, expiry-at-use and acceptance RPCs deferred to P3.';
 COMMENT ON TABLE public.role_permissions IS 'Custom role isolation policies deferred to P2. P1 RLS denies all authenticated reads.';
-COMMENT ON TABLE public.audit_logs IS 'Read-only client grants including service_role. Database audit writers and immutable audit guard deferred to P2.';
+COMMENT ON TABLE public.audit_logs IS 'Authenticated SELECT only, denied by zero-policy RLS in P1; no service_role privileges. Database audit writers and immutable audit guard deferred to P2; platform access requires P9 review.';
 
 COMMENT ON COLUMN public.tenants.created_by IS 'Historical verified actor UUID assigned by future provisioning RPC; no client input trusted. P1 cannot establish authenticated provenance.';
 COMMENT ON COLUMN public.invitations.inviter_membership_id IS 'Canonical immutable inviter; same-tenant composite FK. Derive inviter user from referenced membership, not redundant storage.';
