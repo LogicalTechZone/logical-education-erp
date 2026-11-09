@@ -530,7 +530,60 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      p2_append_audit: {
+        Args: {
+          p_action: string
+          p_entity_id: string
+          p_entity_type: string
+          p_metadata: Json
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      p2_can_view_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: boolean
+      }
+      p2_can_view_membership: {
+        Args: { p_membership_id: string }
+        Returns: boolean
+      }
+      p2_can_view_role: { Args: { p_role_id: string }; Returns: boolean }
+      p2_current_user_is_verified: { Args: never; Returns: boolean }
+      p2_has_any_permission: {
+        Args: { p_permission_key: string }
+        Returns: boolean
+      }
+      p2_has_branch_permission: {
+        Args: {
+          p_branch_id: string
+          p_permission_key: string
+          p_tenant_id: string
+        }
+        Returns: boolean
+      }
+      p2_has_org_permission: {
+        Args: { p_permission_key: string; p_tenant_id: string }
+        Returns: boolean
+      }
+      p2_has_tenant_permission: {
+        Args: { p_permission_key: string; p_tenant_id: string }
+        Returns: boolean
+      }
+      p2_is_active_member: { Args: { p_tenant_id: string }; Returns: boolean }
+      p2_is_platform_admin: { Args: never; Returns: boolean }
+      p2_private_user_is_verified: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      p2_private_validate_invitation_branches: {
+        Args: { p_invitation_id: string; p_require_active: boolean }
+        Returns: undefined
+      }
+      p2_private_validate_membership_branches: {
+        Args: { p_membership_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       invitation_status: "pending" | "accepted" | "revoked" | "expired"
