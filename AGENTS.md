@@ -34,3 +34,4 @@ use the editor.
 - Keep M1 frontend reads on the authenticated browser Supabase client with existing safe projections and RLS; unavailable write workflows stay explicitly disabled until separately approved RPCs exist.
 - Keep one shared authenticated shell and one root session subscriber; route files own metadata and reusable screen components live outside routes.
 - Keep P3 registration review drafts separate from applied migrations; requested package/module catalogues and tenant registration extensions are not entitlement or subscription models, so recording interest cannot activate commercial access.
+- Keep unresolved registration variants fail-closed in review SQL with no application EXECUTE grants; source manifests are prerequisites, not live/runtime proof, and new reference catalogues remain unseeded until their publisher/version and curated scope are approved.
