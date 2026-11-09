@@ -1,6 +1,7 @@
 # M1 planning refinements
 
 - [ ] Original-product registration correction — reconcile original package/module baseline, existing signup/onboarding and unapplied creation draft; present correction plan for explicit approval before implementation. Preserve P1/P2; do not execute the existing organization-creation draft. Approved pricing/quotas/add-on configuration and separately authorized schema/workflow changes are prerequisites for operational checkout and creation.
+- [x] Original documentation reconciliation — completely read both supplied V1 product documents, data dictionary and owner instructions; reconciled with approved Architecture v2/AD decisions, applied P1/P2 evidence and existing frontend. A–E report prepared in chat; no database, Auth or application changes, SQL/tests or new documentation package. Originals and creation draft unchanged.
 
 - [x] Revise the architecture document with corrected schema, RLS, security decisions and test gates.
 - [x] Present the revised plan for review.
