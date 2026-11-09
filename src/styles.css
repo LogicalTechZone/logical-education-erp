@@ -153,3 +153,64 @@
     color: var(--color-foreground);
   }
 }
+
+/* Approved Logical Tech Zone theme; orange is reserved for interactive accents. */
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.983 0.002 255);
+  --foreground: oklch(0.285 0.087 268);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.703 0.165 60);
+  --primary-foreground: oklch(0.2 0.03 60);
+  --secondary: oklch(0.962 0.004 255);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--secondary);
+  --muted-foreground: oklch(0.5 0.016 255);
+  --accent: oklch(0.962 0.024 70);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.917 0.006 255);
+  --input: var(--border);
+  --ring: var(--primary);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-accent: var(--accent);
+  --sidebar-primary: var(--primary);
+}
+.dark {
+  --background: oklch(0.2 0.015 268);
+  --foreground: oklch(0.94 0.006 255);
+  --card: oklch(0.245 0.02 268);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.703 0.165 60);
+  --primary-foreground: oklch(0.2 0.03 60);
+  --secondary: oklch(0.29 0.018 268);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--secondary);
+  --muted-foreground: oklch(0.72 0.015 255);
+  --accent: oklch(0.3 0.03 60);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.34 0.018 268);
+  --input: var(--border);
+  --ring: var(--primary);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-accent: var(--accent);
+  --sidebar-primary: var(--primary);
+}
+@theme inline { --font-sans: "Manrope", sans-serif; }
+body { font-family: var(--font-sans); letter-spacing: 0; }
+.erp-sidebar { width: 264px; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
+.erp-sidebar.is-collapsed { width: 80px; }
+@media (max-width: 767px) {
+  .erp-sidebar { position: fixed; left: -280px; width: 264px; transition: left 180ms ease; }
+  .erp-sidebar.is-open { left: 0; }
+  .erp-sidebar.is-collapsed { width: 264px; }
+}
+@media (prefers-reduced-motion: reduce) { .erp-sidebar { transition: none; } }
