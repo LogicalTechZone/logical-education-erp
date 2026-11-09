@@ -12,5 +12,6 @@
 - [x] Prepare the five requested P2 security blueprint documents against actual P1 V3 — planning and technical analysis only; no implementation, SQL execution, Auth or configuration changes.
 - [x] Deliver final cross-document P2 reconciliation: 20 findings, pending decisions, phase boundaries, all 93 proposed tests classified and missing cases identified; source fingerprints unchanged, no tests/SQL executed. Status: NOT READY — ARCHITECTURAL ISSUES REMAIN. Corrections await explicit review.
 - [x] Prepare decision closure register AD01–AD12/S01–S10, unchanged-source D1–D5 correction plan, complete 130-test reconciliation and separate authorization/readiness checklists; documentation and analysis only; no new decisions approved or tests executed.
+- [ ] Produce authorized D1–D5 Corrected V1 documents, approved AD/S register, complete 130-test reconciliation, change log, consistency audit, blockers and P1/P2 readiness assessment; documentation only, originals unchanged, no SQL/application/settings changes or test execution.
 - [ ] Apply approved P1 migration to dedicated Dev project only, then provide schema, ERD, summary and executed test results — blocked on final migration review approval.
 - [ ] P2 and later implementation phases — blocked pending P1 execution/review and separate explicit P2 approval.
