@@ -24,3 +24,5 @@
 - [ ] P2 owner review — review the reported evidence and ten intentional helper warnings after remaining verification.
 - [ ] P3 and later implementation phases — blocked pending P2 review and separate explicit approval.
 - [x] First M1 frontend phase — authentication forms, shared collapsible/mobile shell, navigation, dashboard, read-only organization directory, account appearance and UI-only onboarding/management screens implemented; no database changes. Three focused tests passed; public desktop/mobile navigation and signed-out guard checked; authenticated read/sign-in/signup/reset flows remain unverified on external Supabase without an available user session.
+- [ ] Next M1 authenticated verification — blocked by external unmanaged Supabase with no authenticated Dev session; login/logout, persistence/expiry, populated reads and membership/mobile cases remain unexecuted.
+- [ ] Next M1 organization creation — no creation RPC or Auth profile initializer exists; minimum secure proposal awaits review, country/currency source, retry contract and controlled profile prerequisite. No database or application changes.
