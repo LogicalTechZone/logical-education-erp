@@ -132,8 +132,6 @@ BEGIN
     ('membership_branches','tenant_id','uuid',true,NULL::text),
     ('membership_branches','membership_id','uuid',true,NULL::text),
     ('membership_branches','branch_id','uuid',true,NULL::text),
-    ('membership_branches','REFERENCES','public.memberships',false,NULL::text),
-    ('membership_branches','REFERENCES','public.branches',false,NULL::text),
     ('invitations','id','uuid',true,'gen_random_uuid()'),
     ('invitations','tenant_id','uuid',true,NULL::text),
     ('invitations','email','extensions.citext',true,NULL::text),
@@ -146,12 +144,9 @@ BEGIN
     ('invitations','accepted_at','timestamp with time zone',false,NULL::text),
     ('invitations','created_at','timestamp with time zone',true,'now()'),
     ('invitations','updated_at','timestamp with time zone',true,'now()'),
-    ('invitations','REFERENCES','public.memberships',false,NULL::text),
     ('invitation_branches','tenant_id','uuid',true,NULL::text),
     ('invitation_branches','invitation_id','uuid',true,NULL::text),
     ('invitation_branches','branch_id','uuid',true,NULL::text),
-    ('invitation_branches','REFERENCES','public.invitations',false,NULL::text),
-    ('invitation_branches','REFERENCES','public.branches',false,NULL::text),
     ('audit_logs','id','bigint',true,NULL::text),
     ('audit_logs','tenant_id','uuid',false,NULL::text),
     ('audit_logs','actor_id','uuid',false,NULL::text),
@@ -176,9 +171,9 @@ BEGIN
     ('permissions',4),
     ('role_permissions',2),
     ('memberships',9),
-    ('membership_branches',5),
-    ('invitations',13),
-    ('invitation_branches',5),
+    ('membership_branches',3),
+    ('invitations',12),
+    ('invitation_branches',3),
     ('audit_logs',9),
     ('platform_admins',3)
   ) e(tbl,cnt) LOOP
@@ -342,7 +337,7 @@ BEGIN
     ('audit_logs','audit_logs_select_organization','tenant_idISNOTNULLANDp2_has_org_permissiontenant_id,''audit.view'''),
     ('platform_admins','platform_admins_select_self','p2_current_user_is_verifiedANDuser_id=auth.uid')
   ) e(tbl,nm,expr) LOOP
-    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_policies p WHERE p.schemaname='public' AND p.tablename=r.tbl AND p.policyname=r.nm AND p.cmd='SELECT' AND p.permissive='PERMISSIVE' AND p.roles=ARRAY['authenticated']::name[] AND p.with_check IS NULL AND pg_catalog.regexp_replace(pg_catalog.replace(pg_catalog.replace(p.qual,'public.',''),'::text',''),'[\s()]','','g')=r.expr) THEN RAISE EXCEPTION 'Policy prerequisite drift: %',r.nm; END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_policies p WHERE p.schemaname='public' AND p.tablename=r.tbl AND p.policyname=r.nm AND p.cmd='SELECT' AND p.permissive='PERMISSIVE' AND p.roles=ARRAY['authenticated']::name[] AND p.with_check IS NULL AND pg_catalog.lower(pg_catalog.regexp_replace(pg_catalog.replace(pg_catalog.replace(p.qual,'public.',''),'::text',''),'[\s()]','','g'))=pg_catalog.lower(r.expr)) THEN RAISE EXCEPTION 'Policy prerequisite drift: %',r.nm; END IF;
   END LOOP;
   IF (SELECT count(*) FROM pg_catalog.pg_policies WHERE schemaname='public')<>12 THEN RAISE EXCEPTION 'Unexpected public policy'; END IF;
   SELECT ARRAY['id','name','slug','country','timezone','default_currency','contact_email','contact_phone','status','created_at','updated_at'] INTO v_cols;
