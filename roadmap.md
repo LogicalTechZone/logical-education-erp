@@ -19,7 +19,7 @@
 - [x] P2 implementation — private fixed audit event capture, immutable audit storage, and migration-controlled system catalog guards applied to Dev.
 - [x] P2 implementation — tenant-serialized active-Owner count synchronization, minimum-one safeguards, and branch-set invariants applied to Dev.
 - [x] P2 verification — live schema/ACL inspection and focused rollback-only security suite passed; runtime defect in the Owner invariant corrected; all fixture data verified removed.
-- [ ] P2 structural/Auth lifecycle verification — finish rollback-only NEW-P1-04/05/06 checks with the corrected uppercase-slug expectation, then verify cleanup.
+- [x] P2 structural/Auth lifecycle verification — rollback-only NEW-P1-04/05/06 checks passed; uppercase slug correctly rejected by format validation, lowercase duplicate by uniqueness, and all fixtures verified removed.
 - [ ] P2 remaining verification — concurrency, performance and real-transport checks remain separately incomplete; report every failure and cleanup result.
 - [ ] P2 owner review — review the reported evidence and ten intentional helper warnings after remaining verification.
 - [ ] P3 and later implementation phases — blocked pending P2 review and separate explicit approval.
