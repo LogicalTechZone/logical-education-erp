@@ -31,3 +31,5 @@ use the editor.
 
 ## Project architecture
 - Store unapplied database review drafts in docs/p1; only the migration tool creates applied supabase/migrations files, so review approval cannot accidentally execute SQL.
+- Keep M1 frontend reads on the authenticated browser Supabase client with existing safe projections and RLS; unavailable write workflows stay explicitly disabled until separately approved RPCs exist.
+- Keep one shared authenticated shell and one root session subscriber; route files own metadata and reusable screen components live outside routes.
