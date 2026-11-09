@@ -19,5 +19,6 @@
 - [x] P2 implementation — private fixed audit event capture, immutable audit storage, and migration-controlled system catalog guards applied to Dev.
 - [x] P2 implementation — tenant-serialized active-Owner count synchronization, minimum-one safeguards, and branch-set invariants applied to Dev.
 - [x] P2 verification — live schema/ACL inspection and focused rollback-only security suite passed; runtime defect in the Owner invariant corrected; all fixture data verified removed.
-- [ ] P2 owner review — review the reported evidence and ten intentional helper warnings; full D5 concurrency, performance, and remaining matrix cases were not executed.
+- [ ] P2 remaining verification — owner authorized rollback-only Dev concurrency, performance and remaining D5 matrix tests; report every failure and cleanup result.
+- [ ] P2 owner review — review the reported evidence and ten intentional helper warnings after remaining verification.
 - [ ] P3 and later implementation phases — blocked pending P2 review and separate explicit approval.
