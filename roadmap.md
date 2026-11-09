@@ -1,5 +1,7 @@
 # M1 planning refinements
 
+- [ ] Original-product registration correction — reconcile original package/module baseline, existing signup/onboarding and unapplied creation draft; present correction plan for explicit approval before implementation. Preserve P1/P2; do not execute the existing organization-creation draft. Approved pricing/quotas/add-on configuration and separately authorized schema/workflow changes are prerequisites for operational checkout and creation.
+
 - [x] Revise the architecture document with corrected schema, RLS, security decisions and test gates.
 - [x] Present the revised plan for review.
 - [x] Incorporate logicaltechzoneofficial@gmail.com as the initial platform administrator, with verified identity and controlled server-side bootstrap only.
@@ -25,4 +27,4 @@
 - [ ] P3 and later implementation phases — blocked pending P2 review and separate explicit approval.
 - [x] First M1 frontend phase — authentication forms, shared collapsible/mobile shell, navigation, dashboard, read-only organization directory, account appearance and UI-only onboarding/management screens implemented; no database changes. Three focused tests passed; public desktop/mobile navigation and signed-out guard checked; authenticated read/sign-in/signup/reset flows remain unverified on external Supabase without an available user session.
 - [ ] Next M1 authenticated verification — blocked by external unmanaged Supabase with no authenticated Dev session; login/logout, persistence/expiry, populated reads and membership/mobile cases remain unexecuted.
-- [ ] Next M1 organization creation — owner approved pinned ISO lists and existing-unchanged replay. Complete unapplied SQL prepared in docs/p1/organization-creation.review.sql (SHA256 8c3cdea4674e989bbee86df0a0d06a0c072b9f68e678de18ad432168f80401c9); nine static checks passed, no SQL compile/runtime tests. Await exact SQL/source snapshot review and separate execution approval; controlled profile prerequisite and real session remain unavailable. No database or application changes.
+- [ ] Next M1 organization creation — owner approved pinned ISO lists and existing-unchanged replay. Complete unapplied SQL prepared in docs/p1/organization-creation.review.sql (SHA256 8c3cdea4674e989bbee86df0a0d06a0c072b9f68e678de18ad432168f80401c9); nine static checks passed, no SQL compile/runtime tests. Execution suspended pending original-product package/entitlement/subscription reconciliation and renewed exact SQL review plus separate execution approval; controlled profile prerequisite and real session remain unavailable. No database or application changes.
