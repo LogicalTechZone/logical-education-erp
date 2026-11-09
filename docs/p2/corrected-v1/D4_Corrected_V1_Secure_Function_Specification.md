@@ -40,6 +40,15 @@ The preferred logical owner split is below. Names describe roles to be designed,
 | Future P3 workflow owner | Only separately reviewed fixed-command workflow capabilities | Not granted by P2 or this document |
 | Existing P1 function owner | Existing structural role-validation read/trigger behavior | Inspected afresh; no assumed suitability as P2 owner |
 
+The four existing P1 functions are part of the mandatory dependency/ACL review:
+
+| P1 signature | Existing security model | Required final inventory |
+|---|---|---|
+| `p1_guard_identity() RETURNS trigger` | Invoker; fixed empty path; no application EXECUTE | Actual owner, trigger arguments/events and immutable columns |
+| `p1_validate_fields() RETURNS trigger` | Invoker; fixed empty path; no application EXECUTE | Actual owner, field rules and trigger events |
+| `p1_validate_role_assignment() RETURNS trigger` | SECURITY DEFINER; fixed empty path; qualified global/custom role read with FOR SHARE; no application EXECUTE | Actual owner, roles SELECT capability/RLS behavior, lock ordering and membership/invitation triggers |
+| `p1_touch_updated_at() RETURNS trigger` | Invoker; fixed empty path; no application EXECUTE | Actual owner, timestamp behavior and interaction with counter-only/audit triggers |
+
 SELECT privileges alone do not bypass RLS. Before P2 SQL preparation, authorized read-only hosted evidence must establish whether these non-login owners can evaluate helpers without recursive RLS, and whether table ownership, FORCE RLS or BYPASSRLS changes the result. Any table-owner/BYPASSRLS fallback and its full blast radius needs separate explicit review. No blanket bypass is approved.
 
 The final SQL review must include actual role names, login/inheritance/bypass attributes, table/function owners, every SELECT/INSERT/UPDATE/sequence/schema/type EXECUTE capability and a dependency graph. Application roles must not assume owners, replace functions, disable triggers or create shadow objects.
