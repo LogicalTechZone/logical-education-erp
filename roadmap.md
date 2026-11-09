@@ -20,6 +20,6 @@
 - [x] P2 implementation — tenant-serialized active-Owner count synchronization, minimum-one safeguards, and branch-set invariants applied to Dev.
 - [x] P2 verification — live schema/ACL inspection and focused rollback-only security suite passed; runtime defect in the Owner invariant corrected; all fixture data verified removed.
 - [x] P2 structural/Auth lifecycle verification — rollback-only NEW-P1-04/05/06 checks passed; uppercase slug correctly rejected by format validation, lowercase duplicate by uniqueness, and all fixtures verified removed.
-- [ ] P2 remaining verification — concurrency, performance and real-transport checks remain separately incomplete; report every failure and cleanup result.
+- [ ] P2 remaining verification — execute only outstanding independent-session concurrency, real JWT/PostgREST, performance-baseline and approved offboarding checks; do not repeat passed tests or alter P2. Request separate approval before any committed shared fixtures; report failed, blocked and unexecuted evidence plus cleanup.
 - [ ] P2 owner review — review the reported evidence and ten intentional helper warnings after remaining verification.
 - [ ] P3 and later implementation phases — blocked pending P2 review and separate explicit approval.
