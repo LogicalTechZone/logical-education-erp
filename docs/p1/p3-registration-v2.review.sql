@@ -43,7 +43,7 @@ BEGIN
   IF pg_catalog.to_regprocedure('auth.uid()') IS NULL OR pg_catalog.to_regprocedure('pg_catalog.gen_random_uuid()') IS NULL THEN
     RAISE EXCEPTION 'Auth/UUID dependency missing';
   END IF;
-  IF EXISTS (SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND (p.proname='create_organization' OR p.proname LIKE 'p3_%')) THEN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND (p.proname='create_organization' OR pg_catalog.starts_with(p.proname,'p3_'))) THEN
     RAISE EXCEPTION 'Existing P3 command/helper needs separate reconciliation';
   END IF;
   FOR r IN SELECT x AS name FROM pg_catalog.unnest(ARRAY['registration_package_choices','registration_module_choices','organization_registrations','organization_registration_modules','registration_country_codes','registration_currency_codes']) x LOOP
@@ -292,50 +292,52 @@ BEGIN
   END LOOP;
   -- Functions: expected source fingerprints derived offline from the unchanged
   -- applied migration files, including the corrected Owner invariant. A source
-  -- match is NOT runtime or race evidence. Do not auto-replace on mismatch.
+  -- match is NOT runtime or race evidence. Exact UTF-8/LF prosrc bytes,
+  -- including comments/whitespace, are hashed; formatting drift fails closed.
+  -- MD5 here is a drift check, not adversarial integrity proof. Do not auto-fix.
   FOR r IN SELECT * FROM (VALUES
-    ('p1_guard_identity()','trigger','plpgsql',false,'v','d43f4f0325f6916141187a20d93ef7db'),
-    ('p1_validate_fields()','trigger','plpgsql',false,'v','949253d322315a81cc00ae07d3737e97'),
-    ('p1_validate_role_assignment()','trigger','plpgsql',true,'v','9e88f53a0810b01f4229fad5abab8981'),
-    ('p1_touch_updated_at()','trigger','plpgsql',false,'v','56215512bc036bab9a482fc8a6be5bff'),
-    ('p2_private_user_is_verified(uuid)','boolean','sql',true,'s','04ec3d3a23c381ed87d3d5978ec21297'),
-    ('p2_current_user_is_verified()','boolean','sql',true,'s','583f00b967707506ac02737aaf03177d'),
-    ('p2_is_active_member(uuid)','boolean','sql',true,'s','2972c46b63d4f47e410af268a6a581f7'),
-    ('p2_has_org_permission(uuid,text)','boolean','sql',true,'s','cadf70284fe24dc6f6f9ca945caadfd7'),
-    ('p2_has_tenant_permission(uuid,text)','boolean','sql',true,'s','f88d945372e5ec4ddb29d62c9d32d2bd'),
-    ('p2_has_branch_permission(uuid,uuid,text)','boolean','sql',true,'s','a2cecbf41f52430d777f212d22c94962'),
-    ('p2_has_any_permission(text)','boolean','sql',true,'s','e55e8b1cd339788f61cfcf51f3682f6b'),
-    ('p2_can_view_role(uuid)','boolean','plpgsql',true,'s','aef1c49d2d588aa4d28db47f9adbefc0'),
-    ('p2_can_view_membership(uuid)','boolean','plpgsql',true,'s','03aee98401192afca318e126cf3c1aaa'),
-    ('p2_can_view_invitation(uuid)','boolean','plpgsql',true,'s','13ce08f74c6a49e87ed90a6ecb6877a7'),
-    ('p2_is_platform_admin()','boolean','sql',true,'s','3490fa758e8de18ece87c7e197c827f8'),
-    ('p2_private_validate_membership_branches(uuid)','void','plpgsql',true,'s','335a1ea4edc76cfd299f4450519c1fdd'),
-    ('p2_private_validate_invitation_branches(uuid,boolean)','void','plpgsql',true,'s','cb0650dc7b066e17c3d601b1a144f0fd'),
-    ('p2_lock_branch_tenant()','trigger','plpgsql',true,'v','b0c3c6f8284de76d270c2594a222600e'),
-    ('p2_guard_new_branch_link()','trigger','plpgsql',true,'v','b6002ac2f3f328ec0f3be3a102532f1e'),
-    ('p2_validate_branch_sets()','trigger','plpgsql',true,'v','864c409afd3cb5917b7d208bddf7e1b1'),
-    ('p2_prevent_last_owner_loss()','trigger','plpgsql',true,'v','dd8e0c6294ee23695d76a79c4c383354'),
-    ('p2_sync_active_owner()','trigger','plpgsql',true,'v','8171889bd0a1b0b72efd84535438e94f'),
-    ('p2_guard_owner_counter()','trigger','plpgsql',true,'v','27a8052a2ac71b8fadaa2a73b5a1afff'),
-    ('p2_check_owner_invariant()','trigger','plpgsql',true,'v','edc5cd6ec2ffbb5b2c20859d50857494'),
-    ('p2_append_audit(uuid,text,text,uuid,jsonb)','void','plpgsql',true,'v','cc4d40a260637e1f81a08f6ba8b18fa4'),
-    ('p2_audit_tenant()','trigger','plpgsql',true,'v','32e0aab19b1adec03fc30f7fd7df444e'),
-    ('p2_audit_branch()','trigger','plpgsql',true,'v','5fd953e934bcdeb514dab51008d8f1b9'),
-    ('p2_audit_membership()','trigger','plpgsql',true,'v','0b10704746097358aa8851a885176332'),
-    ('p2_audit_membership_branch()','trigger','plpgsql',true,'v','6851c65fcf3ff0a586b7e820988ca91c'),
-    ('p2_audit_invitation()','trigger','plpgsql',true,'v','589ed558ace6f5c70869e10bd8ce8321'),
-    ('p2_audit_invitation_branch()','trigger','plpgsql',true,'v','d4db5264e636ac779ead40febc8db6c0'),
-    ('p2_guard_audit_immutable()','trigger','plpgsql',true,'v','5b6af4480591ab9eb743255d25c5c8ef'),
-    ('p2_guard_audit_truncate()','trigger','plpgsql',true,'v','40b02c161cecb4dbfa613b473cb8488b'),
-    ('p2_guard_system_catalog()','trigger','plpgsql',true,'v','4b49447e4660f881e2bc4f76a03c1106'),
-    ('p2_guard_system_catalog_truncate()','trigger','plpgsql',true,'v','8244d7f159e4c2c91feddbca026c804c')
+    ('p1_guard_identity()','trigger','plpgsql',false,'v','1c2cf4c41f552545767a336fd7d0790c'),
+    ('p1_validate_fields()','trigger','plpgsql',false,'v','7ca359e42f700f02f40c0e03993817a4'),
+    ('p1_validate_role_assignment()','trigger','plpgsql',true,'v','03190862bbe60ae800b0bed8f1c07bf7'),
+    ('p1_touch_updated_at()','trigger','plpgsql',false,'v','ba01fe3d1a916c7a8f497915431bbac5'),
+    ('p2_private_user_is_verified(uuid)','boolean','sql',true,'s','93ab421c9456e6920cbf634e8c761465'),
+    ('p2_current_user_is_verified()','boolean','sql',true,'s','783b603b9cb0bad57f5bc2e7a7c2f3e9'),
+    ('p2_is_active_member(uuid)','boolean','sql',true,'s','e1794751a5cb41a2d0510f3a9e90a651'),
+    ('p2_has_org_permission(uuid,text)','boolean','sql',true,'s','13ed6a1466a4eede094ce0f3f87a04fe'),
+    ('p2_has_tenant_permission(uuid,text)','boolean','sql',true,'s','a8143dba44b9927c433a2d86747e6869'),
+    ('p2_has_branch_permission(uuid,uuid,text)','boolean','sql',true,'s','2184a33a5cac3fd27161eb9d89c24aba'),
+    ('p2_has_any_permission(text)','boolean','sql',true,'s','5d1670273aebfbfaec1b1a1ea7d27090'),
+    ('p2_can_view_role(uuid)','boolean','plpgsql',true,'s','eb2c69090198e92fef7a5e39d1748647'),
+    ('p2_can_view_membership(uuid)','boolean','plpgsql',true,'s','6bf399eeb51945060566291d70f3e04d'),
+    ('p2_can_view_invitation(uuid)','boolean','plpgsql',true,'s','77c586f9f2057808b0ae15f147639658'),
+    ('p2_is_platform_admin()','boolean','sql',true,'s','0fcc066fb4d29085fbd8e0db5fbbccda'),
+    ('p2_private_validate_membership_branches(uuid)','void','plpgsql',true,'s','2ea30c6405eab07f4430201bf0f23788'),
+    ('p2_private_validate_invitation_branches(uuid,boolean)','void','plpgsql',true,'s','a9ef4ec6680ba03375f56ed50a34546d'),
+    ('p2_lock_branch_tenant()','trigger','plpgsql',true,'v','2ed093d0ea1b5feae9af99baec76c396'),
+    ('p2_guard_new_branch_link()','trigger','plpgsql',true,'v','be71a2d3f0646f551ce9dc87ea609569'),
+    ('p2_validate_branch_sets()','trigger','plpgsql',true,'v','fb787510080bb6078853e0b5c3ce4e0c'),
+    ('p2_prevent_last_owner_loss()','trigger','plpgsql',true,'v','0177a3db158262a8ee25244a3466291b'),
+    ('p2_sync_active_owner()','trigger','plpgsql',true,'v','22a12ae6a95505bda676f7bf26a046c6'),
+    ('p2_guard_owner_counter()','trigger','plpgsql',true,'v','8135c3c54bd5f6c087c9ff7c9890790f'),
+    ('p2_check_owner_invariant()','trigger','plpgsql',true,'v','72b0dd44206904d1edadda57568553db'),
+    ('p2_append_audit(uuid,text,text,uuid,jsonb)','void','plpgsql',true,'v','f3047f30e0975d3f8c592867fd699ff6'),
+    ('p2_audit_tenant()','trigger','plpgsql',true,'v','56354d802047be0dde83ea81539fd0ba'),
+    ('p2_audit_branch()','trigger','plpgsql',true,'v','ed7f95820b1bbdd704944da1f316fc76'),
+    ('p2_audit_membership()','trigger','plpgsql',true,'v','533b27b393902ea772e8fc4c35e63eb8'),
+    ('p2_audit_membership_branch()','trigger','plpgsql',true,'v','f0350b41c41126d9dfc1a3353c870013'),
+    ('p2_audit_invitation()','trigger','plpgsql',true,'v','d45c19213ffb896892290e1b6af027c0'),
+    ('p2_audit_invitation_branch()','trigger','plpgsql',true,'v','72abbfc7a57110035eb17cd2acd543ca'),
+    ('p2_guard_audit_immutable()','trigger','plpgsql',true,'v','abe024db65431ea22eaaf1ef39483c5f'),
+    ('p2_guard_audit_truncate()','trigger','plpgsql',true,'v','590977d54ffbc3396ca0d0dfc5c7822b'),
+    ('p2_guard_system_catalog()','trigger','plpgsql',true,'v','118522e4b71d63d0a43e51d22fc1061a'),
+    ('p2_guard_system_catalog_truncate()','trigger','plpgsql',true,'v','619c8abb6f7eec79e3ea2f3663cbdbd0')
   ) e(sig,ret,lang,sec,vol,src_md5) LOOP
     v_oid:=pg_catalog.to_regprocedure('public.'||r.sig);
-    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_language l ON l.oid=p.prolang WHERE p.oid=v_oid AND pg_catalog.pg_get_userbyid(p.proowner)='postgres' AND p.prorettype=pg_catalog.to_regtype(r.ret) AND l.lanname=r.lang AND p.prosecdef=r.sec AND p.provolatile::text=r.vol AND p.proconfig=ARRAY['search_path=""'] AND pg_catalog.md5(pg_catalog.regexp_replace(pg_catalog.btrim(p.prosrc),'\s+',' ','g'))=r.src_md5) THEN RAISE EXCEPTION 'Function prerequisite drift: %',r.sig; END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_language l ON l.oid=p.prolang WHERE p.oid=v_oid AND pg_catalog.pg_get_userbyid(p.proowner)='postgres' AND p.prorettype=pg_catalog.to_regtype(r.ret) AND l.lanname=r.lang AND p.prosecdef=r.sec AND p.provolatile::text=r.vol AND NOT p.proisstrict AND p.prokind='f' AND NOT p.proretset AND p.proconfig=ARRAY['search_path=""'] AND pg_catalog.md5(p.prosrc)=r.src_md5) THEN RAISE EXCEPTION 'Function prerequisite drift: %',r.sig; END IF;
     FOREACH v_role IN ARRAY ARRAY['anon','service_role'] LOOP
       IF pg_catalog.has_function_privilege(v_role,v_oid,'EXECUTE') THEN RAISE EXCEPTION 'Forbidden dependency execution grant'; END IF;
     END LOOP;
-    IF r.ret IN ('trigger','void') OR r.sig LIKE 'p2_private_%' THEN
+    IF r.ret IN ('trigger','void') OR pg_catalog.starts_with(r.sig,'p2_private_') THEN
       IF pg_catalog.has_function_privilege('authenticated',v_oid,'EXECUTE') THEN RAISE EXCEPTION 'Private dependency exposed'; END IF;
     ELSE
       IF NOT pg_catalog.has_function_privilege('authenticated',v_oid,'EXECUTE') THEN RAISE EXCEPTION 'Read-helper access missing'; END IF;
@@ -401,24 +403,26 @@ BEGIN
     ('permissions','permissions_system_catalog_truncate_guard','p2_guard_system_catalog_truncate',34,false,ARRAY[]::text[],ARRAY[]::text[]),
     ('role_permissions','role_permissions_system_catalog_truncate_guard','p2_guard_system_catalog_truncate',34,false,ARRAY[]::text[],ARRAY[]::text[])
   ) e(tbl,nm,fn,flags,deferred,upd,args) LOOP
-    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_trigger t WHERE t.tgrelid=pg_catalog.to_regclass('public.'||r.tbl) AND t.tgname=r.nm AND NOT t.tgisinternal AND t.tgenabled='O' AND t.tgfoid=pg_catalog.to_regprocedure('public.'||r.fn||'()') AND t.tgtype=r.flags AND t.tgdeferrable=r.deferred AND t.tginitdeferred=r.deferred AND ARRAY(SELECT a.attname::text FROM pg_catalog.unnest(t.tgattr::smallint[]) WITH ORDINALITY k(num,pos) JOIN pg_catalog.pg_attribute a ON a.attrelid=t.tgrelid AND a.attnum=k.num ORDER BY k.pos)=r.upd AND t.tgnargs=pg_catalog.cardinality(r.args) AND t.tgargs=pg_catalog.decode(COALESCE((SELECT pg_catalog.string_agg(pg_catalog.encode(pg_catalog.convert_to(x,'UTF8'),'hex')||'00','' ORDER BY pos) FROM pg_catalog.unnest(r.args) WITH ORDINALITY z(x,pos)),''),'hex') AND t.tgqual IS NULL) THEN RAISE EXCEPTION 'Trigger prerequisite drift: %.%',r.tbl,r.nm; END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_trigger t WHERE t.tgrelid=pg_catalog.to_regclass('public.'||r.tbl) AND t.tgname=r.nm AND NOT t.tgisinternal AND t.tgenabled='O' AND t.tgfoid=pg_catalog.to_regprocedure('public.'||r.fn||'()') AND t.tgtype=r.flags AND t.tgdeferrable=r.deferred AND t.tginitdeferred=r.deferred AND (t.tgconstraint<>0)=r.deferred AND (NOT r.deferred OR EXISTS (SELECT 1 FROM pg_catalog.pg_constraint c WHERE c.oid=t.tgconstraint AND c.contype='t' AND c.conrelid=t.tgrelid AND c.condeferrable AND c.condeferred)) AND ARRAY(SELECT a.attname::text FROM pg_catalog.unnest(t.tgattr::smallint[]) WITH ORDINALITY k(num,pos) JOIN pg_catalog.pg_attribute a ON a.attrelid=t.tgrelid AND a.attnum=k.num ORDER BY k.pos)=r.upd AND t.tgnargs=pg_catalog.cardinality(r.args) AND t.tgargs=pg_catalog.decode(COALESCE((SELECT pg_catalog.string_agg(pg_catalog.encode(pg_catalog.convert_to(x,'UTF8'),'hex')||'00','' ORDER BY pos) FROM pg_catalog.unnest(r.args) WITH ORDINALITY z(x,pos)),''),'hex') AND t.tgqual IS NULL) THEN RAISE EXCEPTION 'Trigger prerequisite drift: %.%',r.tbl,r.nm; END IF;
   END LOOP;
   IF (SELECT count(*) FROM pg_catalog.pg_trigger t JOIN pg_catalog.pg_class c ON c.oid=t.tgrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND NOT t.tgisinternal) <> 55 THEN RAISE EXCEPTION 'Unexpected application triggers; reconcile before execution'; END IF;
+  -- Exact expected deparse under the fixed search path; preserve literals
+  -- and grouping. Not live-confirmed; any format mismatch requires review.
   FOR r IN SELECT * FROM (VALUES
-    ('tenants','tenants_select_member','p2_has_tenant_permissionid,''organization.view'''),
-    ('branches','branches_select_scoped','p2_has_branch_permissiontenant_id,id,''branch.view'''),
-    ('profiles','profiles_select_self','id=auth.uid'),
-    ('roles','roles_select_catalog','p2_can_view_roleid'),
-    ('permissions','permissions_select_catalog','p2_has_any_permission''role.view'''),
-    ('role_permissions','role_permissions_select_scoped','p2_can_view_rolerole_id'),
-    ('memberships','memberships_select_scoped','p2_can_view_membershipid'),
-    ('membership_branches','membership_branches_select_scoped','p2_can_view_membershipmembership_idANDp2_has_branch_permissiontenant_id,branch_id,''branch.view'''),
-    ('invitations','invitations_select_scoped','p2_can_view_invitationid'),
-    ('invitation_branches','invitation_branches_select_scoped','p2_can_view_invitationinvitation_idANDp2_has_branch_permissiontenant_id,branch_id,''branch.view'''),
-    ('audit_logs','audit_logs_select_organization','tenant_idISNOTNULLANDp2_has_org_permissiontenant_id,''audit.view'''),
-    ('platform_admins','platform_admins_select_self','p2_current_user_is_verifiedANDuser_id=auth.uid')
+    ('tenants','tenants_select_member','p2_has_tenant_permission(id, ''organization.view''::text)'),
+    ('branches','branches_select_scoped','p2_has_branch_permission(tenant_id, id, ''branch.view''::text)'),
+    ('profiles','profiles_select_self','(id = auth.uid())'),
+    ('roles','roles_select_catalog','p2_can_view_role(id)'),
+    ('permissions','permissions_select_catalog','p2_has_any_permission(''role.view''::text)'),
+    ('role_permissions','role_permissions_select_scoped','p2_can_view_role(role_id)'),
+    ('memberships','memberships_select_scoped','p2_can_view_membership(id)'),
+    ('membership_branches','membership_branches_select_scoped','(p2_can_view_membership(membership_id) AND p2_has_branch_permission(tenant_id, branch_id, ''branch.view''::text))'),
+    ('invitations','invitations_select_scoped','p2_can_view_invitation(id)'),
+    ('invitation_branches','invitation_branches_select_scoped','(p2_can_view_invitation(invitation_id) AND p2_has_branch_permission(tenant_id, branch_id, ''branch.view''::text))'),
+    ('audit_logs','audit_logs_select_organization','((tenant_id IS NOT NULL) AND p2_has_org_permission(tenant_id, ''audit.view''::text))'),
+    ('platform_admins','platform_admins_select_self','(p2_current_user_is_verified() AND (user_id = auth.uid()))')
   ) e(tbl,nm,expr) LOOP
-    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_policies p WHERE p.schemaname='public' AND p.tablename=r.tbl AND p.policyname=r.nm AND p.cmd='SELECT' AND p.permissive='PERMISSIVE' AND p.roles=ARRAY['authenticated']::name[] AND p.with_check IS NULL AND pg_catalog.lower(pg_catalog.regexp_replace(pg_catalog.replace(pg_catalog.replace(p.qual,'public.',''),'::text',''),'[\s()]','','g'))=pg_catalog.lower(r.expr)) THEN RAISE EXCEPTION 'Policy prerequisite drift: %',r.nm; END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_policies p WHERE p.schemaname='public' AND p.tablename=r.tbl AND p.policyname=r.nm AND p.cmd='SELECT' AND p.permissive='PERMISSIVE' AND p.roles=ARRAY['authenticated']::name[] AND p.with_check IS NULL AND p.qual=r.expr) THEN RAISE EXCEPTION 'Policy prerequisite drift: %',r.nm; END IF;
   END LOOP;
   IF (SELECT count(*) FROM pg_catalog.pg_policies WHERE schemaname='public')<>12 THEN RAISE EXCEPTION 'Unexpected public policy'; END IF;
   SELECT ARRAY['id','name','slug','country','timezone','default_currency','contact_email','contact_phone','status','created_at','updated_at'] INTO v_cols;
@@ -695,7 +699,7 @@ BEGIN
     END LOOP;
     IF EXISTS (SELECT 1 FROM pg_catalog.aclexplode(COALESCE(r.relacl,pg_catalog.acldefault('r',r.relowner))) a WHERE a.grantee=0) THEN RAISE EXCEPTION 'PUBLIC new table grant'; END IF;
   END LOOP;
-  FOR r IN SELECT p.oid,p.proowner,p.proacl,p.proconfig,p.prosecdef,p.proname FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND (p.proname LIKE 'p3_%' OR p.proname='create_organization') LOOP
+  FOR r IN SELECT p.oid,p.proowner,p.proacl,p.proconfig,p.prosecdef,p.proname FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND (pg_catalog.starts_with(p.proname,'p3_') OR p.proname='create_organization') LOOP
     IF pg_catalog.pg_get_userbyid(r.proowner)<>'postgres' OR r.proconfig<>ARRAY['search_path=""'] THEN RAISE EXCEPTION 'New function owner/path drift'; END IF;
     FOREACH v_role IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
       IF pg_catalog.has_function_privilege(v_role,r.oid,'EXECUTE') THEN RAISE EXCEPTION 'Registration command/helper exposed'; END IF;
