@@ -209,6 +209,87 @@ BEGIN
   FOREACH v_role IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
     IF pg_catalog.has_sequence_privilege(v_role,pg_catalog.pg_get_serial_sequence('public.audit_logs','id'),'USAGE,SELECT,UPDATE') THEN RAISE EXCEPTION 'Forbidden audit sequence grant'; END IF;
   END LOOP;
+  -- All expected P1 constraints, not just command-target foreign keys.
+  FOR r IN SELECT * FROM (VALUES
+    ('tenants','PRIMARY KEY (id)'),
+    ('tenants','UNIQUE (slug)'),
+    ('tenants','UNIQUE (creation_key)'),
+    ('branches','PRIMARY KEY (id)'),
+    ('branches','FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT'),
+    ('branches','UNIQUE (tenant_id, code)'),
+    ('branches','UNIQUE (tenant_id, id)'),
+    ('profiles','PRIMARY KEY (id)'),
+    ('profiles','FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE'),
+    ('profiles','FOREIGN KEY (last_tenant_id) REFERENCES tenants(id) ON DELETE SET NULL'),
+    ('roles','PRIMARY KEY (id)'),
+    ('roles','FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT'),
+    ('roles','UNIQUE (tenant_id, key)'),
+    ('roles','UNIQUE (tenant_id, id)'),
+    ('permissions','PRIMARY KEY (key)'),
+    ('role_permissions','FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE'),
+    ('role_permissions','FOREIGN KEY (permission_key) REFERENCES permissions(key) ON DELETE RESTRICT'),
+    ('role_permissions','PRIMARY KEY (role_id, permission_key)'),
+    ('memberships','PRIMARY KEY (id)'),
+    ('memberships','FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT'),
+    ('memberships','FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE RESTRICT'),
+    ('memberships','FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE RESTRICT'),
+    ('memberships','UNIQUE (tenant_id, user_id)'),
+    ('memberships','UNIQUE (tenant_id, id)'),
+    ('membership_branches','PRIMARY KEY (membership_id, branch_id)'),
+    ('membership_branches','FOREIGN KEY (tenant_id, membership_id) REFERENCES memberships(tenant_id, id) ON DELETE RESTRICT'),
+    ('membership_branches','FOREIGN KEY (tenant_id, branch_id) REFERENCES branches(tenant_id, id) ON DELETE RESTRICT'),
+    ('invitations','PRIMARY KEY (id)'),
+    ('invitations','FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT'),
+    ('invitations','FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE RESTRICT'),
+    ('invitations','UNIQUE (token_hash)'),
+    ('invitations','UNIQUE (tenant_id, id)'),
+    ('invitations','FOREIGN KEY (tenant_id, inviter_membership_id) REFERENCES memberships(tenant_id, id) ON DELETE RESTRICT'),
+    ('invitation_branches','PRIMARY KEY (invitation_id, branch_id)'),
+    ('invitation_branches','FOREIGN KEY (tenant_id, invitation_id) REFERENCES invitations(tenant_id, id) ON DELETE CASCADE'),
+    ('invitation_branches','FOREIGN KEY (tenant_id, branch_id) REFERENCES branches(tenant_id, id) ON DELETE RESTRICT'),
+    ('audit_logs','PRIMARY KEY (id)'),
+    ('audit_logs','FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE RESTRICT'),
+    ('platform_admins','PRIMARY KEY (user_id)'),
+    ('platform_admins','FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE')
+  ) e(tbl,definition) LOOP
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_constraint c WHERE c.conrelid=pg_catalog.to_regclass('public.'||r.tbl) AND c.convalidated AND NOT c.condeferrable AND pg_catalog.pg_get_constraintdef(c.oid)=r.definition) THEN RAISE EXCEPTION 'Required constraint drift: % %',r.tbl,r.definition; END IF;
+  END LOOP;
+  -- Complete named supporting/partial-index manifest. Uniqueness backing
+  -- constraints was checked separately by exact columns and immediate validity.
+  FOR r IN SELECT * FROM (VALUES
+    ('roles','roles_system_key_unique',true,ARRAY['key']::text[],'(tenant_id IS NULL)'),
+    ('invitations','invitations_pending_email_unique',true,ARRAY['tenant_id','email']::text[],'(status = ''pending'')'),
+    ('branches','branches_tenant_status_idx',false,ARRAY['tenant_id','status']::text[],NULL::text),
+    ('profiles','profiles_last_tenant_idx',false,ARRAY['last_tenant_id']::text[],NULL::text),
+    ('roles','roles_tenant_idx',false,ARRAY['tenant_id']::text[],NULL::text),
+    ('role_permissions','role_permissions_permission_idx',false,ARRAY['permission_key']::text[],NULL::text),
+    ('memberships','memberships_user_tenant_status_idx',false,ARRAY['user_id','tenant_id','status']::text[],NULL::text),
+    ('memberships','memberships_tenant_status_idx',false,ARRAY['tenant_id','status']::text[],NULL::text),
+    ('memberships','memberships_role_idx',false,ARRAY['role_id']::text[],NULL::text),
+    ('membership_branches','membership_branches_tenant_branch_idx',false,ARRAY['tenant_id','branch_id']::text[],NULL::text),
+    ('membership_branches','membership_branches_tenant_member_idx',false,ARRAY['tenant_id','membership_id']::text[],NULL::text),
+    ('invitations','invitations_tenant_status_expiry_idx',false,ARRAY['tenant_id','status','expires_at']::text[],NULL::text),
+    ('invitations','invitations_role_idx',false,ARRAY['role_id']::text[],NULL::text),
+    ('invitations','invitations_inviter_idx',false,ARRAY['tenant_id','inviter_membership_id']::text[],NULL::text),
+    ('invitation_branches','invitation_branches_tenant_branch_idx',false,ARRAY['tenant_id','branch_id']::text[],NULL::text),
+    ('invitation_branches','invitation_branches_tenant_invite_idx',false,ARRAY['tenant_id','invitation_id']::text[],NULL::text),
+    ('audit_logs','audit_logs_tenant_created_idx',false,ARRAY['tenant_id','created_at DESC']::text[],NULL::text),
+    ('audit_logs','audit_logs_entity_idx',false,ARRAY['entity_type','entity_id']::text[],NULL::text)
+  ) e(tbl,nm,uniq,cols,pred) LOOP
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_index i JOIN pg_catalog.pg_class c ON c.oid=i.indexrelid JOIN pg_catalog.pg_am am ON am.oid=c.relam WHERE i.indexrelid=pg_catalog.to_regclass('public.'||r.nm) AND i.indrelid=pg_catalog.to_regclass('public.'||r.tbl) AND i.indisunique=r.uniq AND i.indisvalid AND i.indisready AND i.indimmediate AND am.amname='btree' AND i.indnkeyatts=pg_catalog.cardinality(r.cols) AND i.indnatts=i.indnkeyatts AND ARRAY(SELECT pg_catalog.pg_get_indexdef(i.indexrelid,k,true) FROM pg_catalog.generate_series(1,i.indnkeyatts) k)=r.cols AND pg_catalog.replace(pg_catalog.pg_get_expr(i.indpred,i.indrelid),'::invitation_status','') IS NOT DISTINCT FROM r.pred) THEN RAISE EXCEPTION 'Supporting index drift: %',r.nm; END IF;
+  END LOOP;
+  FOR r IN SELECT * FROM (VALUES
+    ('tenant_status',ARRAY['active','suspended','archived']),
+    ('record_status',ARRAY['active','inactive']),
+    ('membership_status',ARRAY['active','invited','suspended','removed']),
+    ('invitation_status',ARRAY['pending','accepted','revoked','expired']),
+    ('role_scope',ARRAY['organization','branch'])
+  ) e(typ,labels) LOOP
+    IF ARRAY(SELECT e.enumlabel::text FROM pg_catalog.pg_enum e WHERE e.enumtypid=pg_catalog.to_regtype('public.'||r.typ) ORDER BY e.enumsortorder) IS DISTINCT FROM r.labels THEN RAISE EXCEPTION 'Enum drift: %',r.typ; END IF;
+  END LOOP;
+  FOR r IN SELECT c.oid,c.relname FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('branches','profiles','roles','permissions','role_permissions','memberships','membership_branches','invitation_branches','audit_logs','platform_admins') LOOP
+    IF NOT pg_catalog.has_table_privilege('authenticated',r.oid,'SELECT') THEN RAISE EXCEPTION 'Expected authorized baseline SELECT missing'; END IF;
+  END LOOP;
   -- Functions: expected source fingerprints derived offline from the unchanged
   -- applied migration files, including the corrected Owner invariant. A source
   -- match is NOT runtime or race evidence. Do not auto-replace on mismatch.
