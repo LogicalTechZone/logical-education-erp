@@ -15,4 +15,8 @@
 - [x] Produce authorized D1–D5 Corrected V1 documents, approved AD/S register, complete 130-test reconciliation, change log, consistency audit, blockers and P1/P2 readiness assessment; documentation only, originals unchanged, no SQL/application/settings changes or implementation test execution. Package ready for separate owner documentary review; execution gates remain blocked.
 - [x] Prepare B18 owner-review evidence digest from the actual corrected package; verify inventory, decisions, all 130 IDs and baseline fingerprints. Disclose R1–R3 test/dependency wording qualifications; source documents unchanged, no implementation or test execution. B18 acceptance remains the owner's separate decision.
 - [x] Apply P1 V3 to Dev via built-in tool (owner-approved); post-checks passed: 12 tables, 5 enums, 4 functions, 5/14/37 catalog, RLS on all, 0 policies, postgres owner, no anon/service/DML grants.
-- [ ] P2 and later implementation phases — blocked pending P1 execution/review and separate explicit P2 approval.
+- [ ] P2 implementation — owner approved: tenant-scoped read policies and safe privileges.
+- [ ] P2 implementation — private audit event capture and immutable audit storage.
+- [ ] P2 implementation — active-Owner count synchronization and minimum-one safeguards.
+- [ ] P2 verification — inspect live schema/ACLs and run approved P2 security tests; report actual evidence.
+- [ ] P3 and later implementation phases — blocked pending P2 review and separate explicit approval.
