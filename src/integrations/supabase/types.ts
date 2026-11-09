@@ -14,7 +14,517 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: number
+          ip: unknown
+          metadata: Json
+          tenant_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: never
+          ip?: unknown
+          metadata?: Json
+          tenant_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: never
+          ip?: unknown
+          metadata?: Json
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      branches: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          code: string
+          country: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          postal_code: string | null
+          state: string | null
+          status: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          code: string
+          country: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id: string
+          timezone: string
+          updated_at?: string
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          code?: string
+          country?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["record_status"]
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitation_branches: {
+        Row: {
+          branch_id: string
+          invitation_id: string
+          tenant_id: string
+        }
+        Insert: {
+          branch_id: string
+          invitation_id: string
+          tenant_id: string
+        }
+        Update: {
+          branch_id?: string
+          invitation_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitation_branches_tenant_id_branch_id_fkey"
+            columns: ["tenant_id", "branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "invitation_branches_tenant_id_invitation_id_fkey"
+            columns: ["tenant_id", "invitation_id"]
+            isOneToOne: false
+            referencedRelation: "invitations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          inviter_membership_id: string
+          role_id: string
+          status: Database["public"]["Enums"]["invitation_status"]
+          tenant_id: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          inviter_membership_id: string
+          role_id: string
+          status?: Database["public"]["Enums"]["invitation_status"]
+          tenant_id: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          inviter_membership_id?: string
+          role_id?: string
+          status?: Database["public"]["Enums"]["invitation_status"]
+          tenant_id?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_tenant_id_inviter_membership_id_fkey"
+            columns: ["tenant_id", "inviter_membership_id"]
+            isOneToOne: false
+            referencedRelation: "memberships"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      membership_branches: {
+        Row: {
+          branch_id: string
+          membership_id: string
+          tenant_id: string
+        }
+        Insert: {
+          branch_id: string
+          membership_id: string
+          tenant_id: string
+        }
+        Update: {
+          branch_id?: string
+          membership_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_branches_tenant_id_branch_id_fkey"
+            columns: ["tenant_id", "branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "membership_branches_tenant_id_membership_id_fkey"
+            columns: ["tenant_id", "membership_id"]
+            isOneToOne: false
+            referencedRelation: "memberships"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string | null
+          joined_at: string | null
+          role_id: string
+          status: Database["public"]["Enums"]["membership_status"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string | null
+          role_id: string
+          status?: Database["public"]["Enums"]["membership_status"]
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string | null
+          role_id?: string
+          status?: Database["public"]["Enums"]["membership_status"]
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permissions: {
+        Row: {
+          action: string
+          description: string
+          key: string
+          module: string
+        }
+        Insert: {
+          action: string
+          description: string
+          key: string
+          module: string
+        }
+        Update: {
+          action?: string
+          description?: string
+          key?: string
+          module?: string
+        }
+        Relationships: []
+      }
+      platform_admins: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          last_tenant_id: string | null
+          phone: string | null
+          theme_preference: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          last_tenant_id?: string | null
+          phone?: string | null
+          theme_preference?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          last_tenant_id?: string | null
+          phone?: string | null
+          theme_preference?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_last_tenant_id_fkey"
+            columns: ["last_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          permission_key: string
+          role_id: string
+        }
+        Insert: {
+          permission_key: string
+          role_id: string
+        }
+        Update: {
+          permission_key?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          key: string
+          name: string
+          rank: number
+          scope: Database["public"]["Enums"]["role_scope"]
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key: string
+          name: string
+          rank: number
+          scope: Database["public"]["Enums"]["role_scope"]
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key?: string
+          name?: string
+          rank?: number
+          scope?: Database["public"]["Enums"]["role_scope"]
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          active_owner_count: number
+          contact_email: string | null
+          contact_phone: string | null
+          country: string
+          created_at: string
+          created_by: string
+          creation_key: string
+          default_currency: string
+          id: string
+          name: string
+          settings: Json
+          slug: string
+          status: Database["public"]["Enums"]["tenant_status"]
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          active_owner_count?: number
+          contact_email?: string | null
+          contact_phone?: string | null
+          country: string
+          created_at?: string
+          created_by: string
+          creation_key: string
+          default_currency: string
+          id?: string
+          name: string
+          settings?: Json
+          slug: string
+          status?: Database["public"]["Enums"]["tenant_status"]
+          timezone: string
+          updated_at?: string
+        }
+        Update: {
+          active_owner_count?: number
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string
+          created_at?: string
+          created_by?: string
+          creation_key?: string
+          default_currency?: string
+          id?: string
+          name?: string
+          settings?: Json
+          slug?: string
+          status?: Database["public"]["Enums"]["tenant_status"]
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +533,11 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      invitation_status: "pending" | "accepted" | "revoked" | "expired"
+      membership_status: "active" | "invited" | "suspended" | "removed"
+      record_status: "active" | "inactive"
+      role_scope: "organization" | "branch"
+      tenant_status: "active" | "suspended" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +664,12 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      invitation_status: ["pending", "accepted", "revoked", "expired"],
+      membership_status: ["active", "invited", "suspended", "removed"],
+      record_status: ["active", "inactive"],
+      role_scope: ["organization", "branch"],
+      tenant_status: ["active", "suspended", "archived"],
+    },
   },
 } as const
