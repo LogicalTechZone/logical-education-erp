@@ -30,7 +30,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         } else {
           void refresh();
           void queryClient.invalidateQueries();
-          if (event === 'PASSWORD_RECOVERY') void router.navigate({ to: '/reset-password' });
+          if (event === 'PASSWORD_RECOVERY') {
+            sessionStorage.setItem('logical-erp:recovery', 'true');
+            void router.navigate({ to: '/reset-password' });
+          }
         }
         void router.invalidate();
       }, 0);
