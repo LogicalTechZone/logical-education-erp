@@ -7,10 +7,10 @@ SQL = Path(__file__).with_name('p3-registration-v2.review.sql').read_text()
 
 
 def module_rows(sql):
-    match = re.search(r'INSERT INTO public.registration_module_choices\(key,name,release_priority\) VALUES\s*(.*?);', sql, re.S)
+    match = re.search(r'INSERT INTO public.registration_module_choices\(key,name,release_priority\) VALUES\s*(.*?)\);', sql, re.S)
     if match is None:
         return {}
-    return dict((key, priority) for key, _, priority in re.findall(r"\('([^']+)','([^']+)','([^']+)'\)", match.group(1)))
+    return dict((key, priority) for key, _, priority in re.findall(r"\('([^']+)','([^']+)','([^']+)'\)", match.group(1) + ')'))
 
 
 class P3ReviewRules(unittest.TestCase):
