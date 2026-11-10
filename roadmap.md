@@ -1,6 +1,6 @@
 # M1 planning refinements
 
-- [ ] Theme-specific brand assets — use the supplied full-color logo in light mode and orange transparent logo in dark mode; light remains the default and the existing per-user toggle remains unchanged.
+- [x] Theme-specific brand assets — supplied full-color logo appears in light mode and the supplied white/orange transparent logo in dark mode; light remains the default and the existing per-user toggle remains unchanged. Browser icon updated from the supplied brand mark. Four focused tests passed; live toggle, image loading and both visual states checked with no page errors.
 
 - [x] P3 technical correction V2 — new complete 712-line fail-closed review SQL prepared; both original fingerprints unchanged. Corrected 16 customer modules/priorities; Enterprise provisioning, pending access and pilot/public boundary remain explicit owner choices. Added expected schema/constraint/index/trigger/function/policy/ACL manifests and proposed unseeded maintained code catalogues. Seven offline draft-rule tests passed after correcting one test extractor; no SQL compilation/runtime/runner tests, live audit, database/Auth/application change or migration execution. Exposure and execution remain blocked pending decisions, S08, approved code seeds and isolated verification.
 
