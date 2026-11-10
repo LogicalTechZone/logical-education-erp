@@ -1,5 +1,7 @@
 # M1 planning refinements
 
+- [ ] Theme-specific brand assets — use the supplied full-color logo in light mode and orange transparent logo in dark mode; light remains the default and the existing per-user toggle remains unchanged.
+
 - [x] P3 technical correction V2 — new complete 712-line fail-closed review SQL prepared; both original fingerprints unchanged. Corrected 16 customer modules/priorities; Enterprise provisioning, pending access and pilot/public boundary remain explicit owner choices. Added expected schema/constraint/index/trigger/function/policy/ACL manifests and proposed unseeded maintained code catalogues. Seven offline draft-rule tests passed after correcting one test extractor; no SQL compilation/runtime/runner tests, live audit, database/Auth/application change or migration execution. Exposure and execution remain blocked pending decisions, S08, approved code seeds and isolated verification.
 
 - [ ] Original-product registration correction — reconcile original package/module baseline, existing signup/onboarding and unapplied creation draft; present correction plan for explicit approval before implementation. Preserve P1/P2; do not execute the existing organization-creation draft. Approved pricing/quotas/add-on configuration and separately authorized schema/workflow changes are prerequisites for operational checkout and creation.
